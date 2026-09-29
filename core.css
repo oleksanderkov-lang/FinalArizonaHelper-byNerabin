@@ -1,4 +1,3 @@
-/* ПРИНУДИТЕЛЬНАЯ ТЕМНАЯ ТЕМА ДЛЯ ВСЕГО */
 :root, 
 html[data-style-variation="alternate"], 
 html[data-style-variation="default"], 
@@ -10,7 +9,6 @@ html[data-color-scheme="dark"] {
     --ah-text-default: #ffffff !important;
 }
 
-/* СЕТКА И ЗАКРЕПЫ */
 .structItemContainer-group--sticky { padding-bottom: 36px !important; margin-bottom: 36px !important; position: relative; }
 .structItemContainer-group--sticky::after {
     content: ""; position: absolute; bottom: 8px; left: 5%; width: 90%; height: 2px;
@@ -21,14 +19,12 @@ html[data-color-scheme="dark"] {
     gap: 16px !important; padding: 12px 0 !important; background: transparent !important; border: none !important;
 }
 
-/* ОСНОВНАЯ КАРТОЧКА (ТЕМА) */
 .structItem.structItem--thread {
     display: block !important; background: var(--ah-surface) !important; border-radius: 12px !important; padding: 16px 16px 64px 16px !important; 
     border: 1px solid var(--ah-border, var(--ah-border-fallback)) !important; box-shadow: 0 4px 15px var(--ah-shadow) !important;
     transition: all 0.3s ease !important; position: relative !important; box-sizing: border-box !important; height: 100% !important; 
 }
 
-/* Стандартное выделение */
 .structItem.structItem--thread:hover, .node-body:hover {
     background: rgba(255, 255, 255, 0.03) !important; 
     border-color: var(--ah-border-h) !important;
@@ -38,7 +34,6 @@ html[data-color-scheme="dark"] {
 .structItem-statuses, .structItem-extraInfoMinor, .structItem-title > a:not(.labelLink) ~ .label { display: none !important; }
 .structItem-parts::before, .structItem-parts::after, .structItem-parts li::before, .structItem-parts li::after { display: none !important; content: none !important; }
 
-/* ЗАГОЛОВОК И ТЕГИ */
 .structItem-title { display: block !important; position: relative !important; font-size: 15px !important; font-weight: 700 !important; line-height: 1.4 !important; margin: 0 0 10px 0 !important; padding: 0 120px 0 0 !important; width: 100% !important; box-sizing: border-box !important; }
 .structItem-title > a:not(.labelLink) { color: var(--ah-text, var(--ah-text-default)) !important; text-decoration: none !important; word-wrap: break-word !important; display: inline !important; }
 .structItem-title > a:not(.labelLink):hover { color: var(--ah-accent) !important; }
@@ -77,11 +72,9 @@ html[data-color-scheme="dark"] {
 .structItem-parts .structItem-startDate { font-size: 0 !important; } 
 
 .message { transition: all 0.3s ease !important; border-radius: 8px; background: var(--ah-surface) !important; border: 1px solid var(--ah-border, var(--ah-border-fallback)) !important; }
-/* Убрано всплывание сообщений */
 .message:hover { border-color: var(--ah-border-h) !important; }
 .block-minorHeader.block-stickyHeader, .block-minorHeader { display: none !important; }
 
-/* РАЗДЕЛЫ ФОРУМА (NODES) */
 .block-body:has(.node-body) { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; padding: 12px 0 !important; background: transparent !important; border: none !important; }
 @media (max-width: 800px) { .block-body:has(.node-body) { grid-template-columns: 1fr !important; } }
 .block-container:has(.node-body) { background: transparent !important; border: none !important; box-shadow: none !important; }
@@ -109,7 +102,6 @@ html[data-color-scheme="dark"] {
 
 .p-body-header { margin-top: 82px !important; }
 
-/* ШАПКА */
 .p-title {
     display: flex !important; justify-content: space-between !important; align-items: center !important; flex-wrap: wrap !important; gap: 15px !important;
     background: linear-gradient(135deg, var(--ah-surface) 0%, rgba(20, 20, 25, 0.05) 100%) !important; backdrop-filter: blur(16px) saturate(180%) !important; -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
@@ -123,7 +115,7 @@ html[data-color-scheme="dark"] {
     margin: 0 !important; 
     padding: 0 !important; 
     letter-spacing: 0.5px !important; 
-    text-transform: none !important; /* УБРАЛИ КАПС */
+    text-transform: none !important;
     display: flex !important; 
     align-items: center !important; 
     gap: 10px !important; 
@@ -139,7 +131,6 @@ html[data-color-scheme="dark"] {
     border-radius: 12px !important; border: 1px solid var(--ah-border-fallback) !important; box-shadow: 0 6px 24px var(--ah-shadow) !important;
 }
 
-/* ЗАЧИСТКА ГЛОБАЛЬНЫХ КОНТЕЙНЕРОВ */
 .p-body-main, .p-body-content, .p-body-pageContent, .p-body-inner, .p-body-header, .block, .block-container { background: transparent !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; border: none !important; box-shadow: none !important; }
 .p-body-pageContent > .block > .block-container { padding: 0 !important; }
 .p-body-header { margin-bottom: 0 !important; padding-bottom: 0 !important; border-bottom: none !important; }
@@ -149,9 +140,7 @@ html[data-color-scheme="dark"] {
 .p-body-pageContent > .block, .p-body-pageContent > .block > .block-container, .block-container-nodes, .block-container:has(> .block-body > .structItemContainer), .block-container:has(> .block-body > .node) { background: transparent !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; border: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; }
 .block-body { background: transparent !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; border: none !important; box-shadow: none !important; }
 
-/* ВЫПАДАЮЩИЙ СПИСОК */
 .v-opt { color: var(--ah-text, var(--ah-text-default)) !important; background: transparent !important; }
 .v-opt:hover { background: var(--ah-btn-h) !important; color: var(--ah-accent) !important; }
 
-/* СКРЫТИЕ ВСПЛЫВАЮЩЕГО ОКНА ПРОФИЛЯ */
 #gazarUserInfoBadgeOverlay, .gazarUserInfoBadgeOverlay, .gazarUserInfoBadgeCard, .gazarUserInfoBadge { display: none !important; opacity: 0 !important; pointer-events: none !important; }

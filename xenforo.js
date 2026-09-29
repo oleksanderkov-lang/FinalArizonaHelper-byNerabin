@@ -1,5 +1,3 @@
-// --- ИНТЕГРАЦИЯ С ДВИЖКОМ XENFORO ---
-
 function insertHtmlIntoEditor(html) {
     const editor = document.querySelector('.fr-element');
     if (!editor) return false;
@@ -81,17 +79,14 @@ function enhanceXenForoMenus(targetNode) {
                         formData.append('_xfToken', token);
                         formData.append('title', doc.querySelector('input[name="title"]').value);
                         formData.append('prefix_id', prefixId);
-                        
-                        // Обязательные маркеры для XenForo
+
                         formData.append('_xfSet[discussion_open]', '1');
                         formData.append('_xfSet[sticky]', '1');
 
                         if (prefixId === '15') { 
-                            // На рассмотрении: открыть и закрепить
                             formData.append('discussion_open', '1');
                             formData.append('sticky', '1');
                         } else if (prefixId === '17' || prefixId === '18') { 
-                            // Рассмотрено / Отказано: закрыть и открепить
                         } else {
                             formData.append('discussion_open', '1');
                         }
@@ -117,7 +112,6 @@ function enhanceXenForoMenus(targetNode) {
 function initSmartNav() {
     const isThreadList = document.querySelector('.structItemContainer-group');
 
-    // 1. УМНЫЙ ФИЛЬТР ТЕМ
     if (isThreadList && !document.getElementById('ah-live-filter')) {
         const filterStyle = document.createElement('style');
         filterStyle.textContent = `
@@ -149,8 +143,7 @@ function initSmartNav() {
         threads.forEach(item => {
             item._ahText = item.innerText.toLowerCase();
             item._ahLabels = Array.from(item.querySelectorAll('.label')).map(l => l.innerText.toLowerCase());
-            
-            // Точный парсинг даты из первого тега time (дата создания)
+
             item._ahCreationTime = Date.now() / 1000; 
             const timeEls = item.querySelectorAll('time');
             if (timeEls.length > 0) {
@@ -176,13 +169,13 @@ function initSmartNav() {
                     const hasStopTag = item._ahLabels.some(label => stopTags.some(status => label.includes(status)));
                     
                     if (hasStopTag) {
-                        ml = false; // Уже проверено админами
+                        ml = false;
                     } else {
-                        // Проверяем ТОЛЬКО возраст! Если теме больше 30 дней - это старый закреп с правилами
+                        // Если теме больше 30 дней - это старый закреп с правилами
                         if ((currentSec - item._ahCreationTime) > ONE_MONTH_SEC) {
                             ml = false;
                         } else {
-                            ml = true; // Теме меньше 30 дней и нет админ-тега - показываем 100%!
+                            ml = true;
                         }
                     }
                 }
@@ -221,7 +214,6 @@ function initSmartNav() {
         });
     }
 
-    // 2. РАЗДЕЛИТЕЛЬ ЗАКРЕПЛЕННЫХ ТЕМ
     if (isThreadList && !document.querySelector('.ah-sticky-separator')) {
         const threadList = document.querySelectorAll('.structItem--thread');
         let lastSticky = null;
@@ -243,7 +235,6 @@ function initSmartNav() {
             const sep = document.createElement('div');
             sep.className = 'ah-sticky-separator';
             
-            // МАГИЯ СЕТКИ: Заставляем разделитель игнорировать колонки и растянуться на 100% ширины
             sep.style.gridColumn = '1 / -1';
             sep.style.width = '100%';
             
@@ -344,19 +335,14 @@ window.AH_changeThreadState = async function(prefixId) {
         formData.append('title', doc.querySelector('input[name="title"]').value);
         formData.append('prefix_id', prefixId);
         
-        // Обязательные служебные маркеры XenForo (чтобы чекбоксы сработали)
         formData.append('_xfSet[discussion_open]', '1');
         formData.append('_xfSet[sticky]', '1');
 
         if (prefixId === '15') { 
-            // 15 - На рассмотрении (оставить открытой и закрепить)
             formData.append('discussion_open', '1');
             formData.append('sticky', '1');
         } else if (prefixId === '17' || prefixId === '18') { 
-            // 17 / 18 - Рассмотрено / Отказано 
-            // Не передаем ключи discussion_open и sticky -> XenForo закрывает и открепляет тему
         } else {
-            // По дефолту оставляем открытой
             formData.append('discussion_open', '1');
         }
         
@@ -373,7 +359,6 @@ window.AH_changeThreadState = async function(prefixId) {
     }
 };
 
-// --- УДАЛЕНИЕ ОФФТОПА В ОДИН КЛИК ---
 function addOfftopButtons(targetNode) {
     targetNode.querySelectorAll('.message').forEach(function(message) {
         // Защита от дублирования кнопок
@@ -382,8 +367,7 @@ function addOfftopButtons(targetNode) {
 
         const warnBtn = message.querySelector('a.actionBar-action--warn');
         const deleteBtn = message.querySelector('a.actionBar-action--delete');
-        
-        // Достаем ID сообщения из соседних кнопок
+
         let postId = null;
         if (deleteBtn && deleteBtn.href) {
             let match = deleteBtn.href.match(/posts\/(\d+)\/delete/i);
@@ -397,13 +381,12 @@ function addOfftopButtons(targetNode) {
         
         const internalBar = message.querySelector('.actionBar-set--internal');
         if (!internalBar) return;
-        
-        // Создаем кнопку стандартного вида
+
         const offtopBtn = document.createElement('a');
         offtopBtn.href = "javascript:void(0)";
         offtopBtn.className = "actionBar-action actionBar-action--menuItem";
         offtopBtn.innerHTML = "Удалить оффтоп";
-        offtopBtn.style.color = "#e74c3c"; // Слегка красим в красный для безопасности
+        offtopBtn.style.color = "#e74c3c";
         
         offtopBtn.addEventListener('click', async function(e) {
             e.preventDefault();
@@ -417,7 +400,6 @@ function addOfftopButtons(targetNode) {
             offtopBtn.style.pointerEvents = "none";
             
             try {
-                // Достаем токен безопасности XenForo
                 const tokenInput = document.querySelector('input[name="_xfToken"]');
                 const csrfToken = document.querySelector('html').getAttribute('data-csrf') || (tokenInput ? tokenInput.value : '');
                 
@@ -438,7 +420,6 @@ function addOfftopButtons(targetNode) {
                 });
                 
                 if (response.ok) {
-                    // Плавно скрываем сообщение с экрана
                     message.style.transition = 'all 0.3s ease';
                     message.style.opacity = '0';
                     message.style.transform = 'scale(0.9)';

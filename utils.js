@@ -1,5 +1,3 @@
-// --- УТИЛИТЫ И ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
-
 function escapeHtml(unsafe) {
     if (!unsafe) return "";
     return unsafe

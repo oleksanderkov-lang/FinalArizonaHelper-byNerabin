@@ -38,12 +38,11 @@ let CONFIG = {
 let isStarted = false;
 const RULES_DB = [];
 
-// Главная функция запуска расширения
 function startHelper() {
     if (isStarted) return;
     isStarted = true;
 
-    syncRulesDatabase(); // Подтягивается из database.js
+    syncRulesDatabase();
 
     if (window.AH_Visuals) window.AH_Visuals.init(CONFIG);
     
@@ -51,7 +50,6 @@ function startHelper() {
     let MENU = AH_DATA.MENU; 
     let HOTKEYS = AH_DATA.HOTKEYS;
 
-    // Глобальная функция обновления меню (вызывается при добавлении своих форм)
     window.reloadMenu = function() { 
         AH_DATA = window.AH_TEMPLATES ? window.AH_TEMPLATES(CONFIG) : { MENU: {}, HOTKEYS: {} }; 
         MENU = AH_DATA.MENU; 
@@ -108,8 +106,7 @@ function startHelper() {
             const container = e.target.closest('.quick_reply_container');
             const cat = escapeHtml(container.querySelector('#cm_cat').value.trim() || 'Общие');
             const title = escapeHtml(container.querySelector('#cm_title').value.trim().substring(0, 100));
-            
-            // Сохраняем переносы строк Enter и пробелы
+
             let rawText = container.querySelector('#cm_text').value.trim();
             const text = escapeHtml(rawText).replace(/\n/g, '<br>').replace(/  /g, ' &nbsp;');
             
@@ -180,30 +177,26 @@ function startHelper() {
         }
     });
 
-    // Слушатель сохранения настроек
     window.addEventListener('AH_SAVE_CONFIG', function(e) {
         Object.assign(CONFIG, e.detail);
         autoDetectConfig();
     });
 }
 
-// Слушатель фоновой синхронизации (восстановлен для правильной работы памяти)
 window.addEventListener('AH_UPDATE_FROM_STORAGE', function(e) {
     if (!e || !e.detail) return;
     Object.assign(CONFIG, e.detail);
-    
-    // Без этого новые ники и организации не применятся к формам до перезагрузки страницы
+
     if (typeof autoDetectConfig === 'function') {
         autoDetectConfig();
     }
-    
-    // Тихо обновляем менюшки и бинды, не ломая мышку и визуал
+
     if (typeof window.reloadMenu === 'function') {
         window.reloadMenu(); 
     }
 });
 
-// Первичная инициализация скрипта (ждет мост из popup)
+// Первичная инициализация скрипта
 let waitInterval = setInterval(function() {
     const configTag = document.getElementById('arizona-ext-config');
     if (configTag) {

@@ -11,7 +11,6 @@
 .menu-row.menu-row--separated:hover { background: var(--ah-glow) !important; }
 .menu-row label { color: var(--ah-text-m) !important; font-weight: 600 !important; margin-bottom: 6px !important; display: inline-block; }
 
-/* ПЛАВНАЯ АНИМАЦИЯ ДЛЯ СТАНДАРТНЫХ МЕНЮШЕК XENFORO */
 .menu-content .menu-linkRow {
     color: #cfcfcf !important;
     font-size: 13px !important;
@@ -57,7 +56,6 @@
 .ah-modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; z-index: 999999; backdrop-filter: blur(10px); animation: ahFadeIn 0.3s ease-out forwards; }
 .ah-modal-box { background: #141419 !important; padding: 24px; border-radius: 12px; color: var(--ah-text-default); box-shadow: 0 15px 50px rgba(0,0,0,0.8), 0 0 20px var(--ah-glow); border: 1px solid #333; animation: ahScaleUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
 
-/* ВОТ ЗДЕСЬ ВОЗВРАЩЕН СКРОЛЛ */
 .ah-dropdown-animated { 
     animation: ahDropdownSlide 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important; 
     background: #1a1a20 !important; 
@@ -70,7 +68,6 @@
 .ah-modal-overlay.ah-closing { animation: ahFadeOut 0.25s ease-in forwards !important; }
 .ah-modal-overlay.ah-closing .ah-modal-box { animation: ahScaleDown 0.25s ease-in forwards !important; }
 
-/* ПЛАВНАЯ АНИМАЦИЯ ДЛЯ ВЫПАДАЮЩЕГО СПИСКА В F4 */
 .ah-dropdown-item { 
     padding: 12px 14px !important; cursor: pointer !important; border-bottom: 1px solid #2f2f36 !important; 
     font-size: 12px !important; line-height: 1.4 !important; background: transparent !important; 
@@ -176,7 +173,6 @@ form[action="/search/search"] .iconic:hover .iconic-label::before { border-color
 .v-scroll::-webkit-scrollbar-thumb { background: var(--ah-accent); border-radius: 4px; }
 .v-scroll::-webkit-scrollbar-thumb:hover { background: #fff; }
 
-/* ОСТАЛЬНЫЕ ЭЛЕМЕНТЫ ФОРУМА */
 .inputGroup { display: flex !important; gap: 8px !important; }
 .inputGroup-splitter { display: none !important; }
 .menu-footer { background: transparent !important; border-top: 1px solid rgba(255, 255, 255, 0.05) !important; padding: 12px 16px !important; border-radius: 0 0 12px 12px !important; text-align: center !important; }
@@ -261,7 +257,6 @@ form[action="/search/search"] .iconic:hover .iconic-label::before { border-color
     padding: 6px 12px !important;
 }
 
-/* Стилизация самой ссылки внутри */
 .tooltip--selectToQuote .tooltip-content a {
     color: #cfcfcf !important;
     font-weight: 600 !important;
@@ -278,7 +273,6 @@ form[action="/search/search"] .iconic:hover .iconic-label::before { border-color
     visibility: hidden !important;
 }
 
-/* ПОЛЗУНОК ДЛЯ F4 */
 .ah-f4-toggle-wrap { 
     display: flex; 
     align-items: center; 

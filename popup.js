@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. ИНИЦИАЛИЗАЦИЯ И СТРУКТУРА ДАННЫХ
     const defaultSettings = {
         nickname: "Nick Name", organization: "LSPD", signature: "byNerabin", discordWebhook: "",
         themeColor: "#3498db", themeTextColor: "#ffffff", pColor: "#3498db",
@@ -18,7 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let currentHotkeys = {};
 
-    // 2. ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
@@ -27,7 +25,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // 3. ПОСТРОЕНИЕ ВЫПАДАЮЩИХ СПИСКОВ БИНДЕРА (F1-F5)
     function buildHotkeysDropdowns(items) {
         const categories = [
             { label: "👑 Администратор", items: [{val: "verdict", text: "Форма Вердикта"}, {val: "refuse", text: "Отказ жалобы"}, {val: "jbadm", text: "Ответ ЖБАДМ"}, {val: "inReview", text: "ЖБ на рассмотрении"}, {val: "requestProof", text: "Запрос опровержения"}, {val: "wrongFormat", text: "Не по форме"}, {val: "transferred", text: "Передано ст. адм"}] },
@@ -78,7 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             itemsDiv.innerHTML = optHtml;
 
-            // Логика кликов для списка
             wrapper.querySelector('.select-selected').addEventListener('click', (e) => {
                 e.stopPropagation();
                 document.querySelectorAll('.custom-select').forEach(el => { if (el !== wrapper) el.classList.remove('active'); });
@@ -116,38 +112,32 @@ document.addEventListener('DOMContentLoaded', () => {
         
     }
 
-    // 4. ЗАГРУЗКА И ПРИВЯЗКА ДАННЫХ
     chrome.storage.local.get(defaultSettings, function(items) {
         buildHotkeysDropdowns(items);
 
-        // Текстовые поля
         textFields.forEach(id => {
             const el = document.getElementById(id);
             if (el && items[id] !== undefined) el.value = items[id];
         });
 
-        // Свитчи
         checkFields.forEach(id => {
             const el = document.getElementById(id);
             if (el && items[id] !== undefined) el.checked = !!items[id];
         });
 
-        // Ползунки
         rangeFields.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
                 el.value = items[id] !== undefined ? items[id] : el.min;
                 const valDisp = document.getElementById(id + 'Val');
                 if (valDisp) valDisp.textContent = el.value;
-                
-                // Живое обновление цифр при перетаскивании
+
                 el.addEventListener('input', e => {
                     if (valDisp) valDisp.textContent = e.target.value;
                 });
             }
         });
 
-        // Цвета
         colorFields.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
@@ -165,12 +155,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Обновление статы
         document.getElementById('pendingCountDisp').textContent = items.pendingForms ? items.pendingForms.length : 0;
         document.getElementById('totalCheckedDisp').textContent = items.totalChecked || 0;
     });
 
-    // 5. ЛОГИКА СОХРАНЕНИЯ (Сбор всех данных из DOM)
     document.getElementById('saveBtn').addEventListener('click', e => {
         const btn = e.target;
         const data = {};
@@ -208,7 +196,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // 6. ИНДИВИДУАЛЬНЫЙ СБРОС ЦВЕТОВ
     const colorResetLogic = [
         { id: 'themeColor', btnId: 'reset_themeColor', def: defaultSettings.themeColor },
         { id: 'themeTextColor', btnId: 'reset_themeTextColor', def: defaultSettings.themeTextColor },
@@ -236,7 +223,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 7. СБРОС ВСЕГО ВИЗУАЛА (Глобальная кнопка внизу)
     const globalResetBtn = document.getElementById('globalResetBtn');
     if (globalResetBtn) {
         globalResetBtn.addEventListener('click', () => {
@@ -258,7 +244,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 8. ЛОГИКА DISCORD WEBHOOK
     const btnSend = document.getElementById('btnSendDiscord');
     if (btnSend) {
         btnSend.addEventListener('click', () => {
@@ -286,7 +271,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 9. СКАЧАТЬ В TXT
     const btnDownload = document.getElementById('btnDownloadLog');
     if (btnDownload) {
         btnDownload.addEventListener('click', () => {

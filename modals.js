@@ -1,5 +1,3 @@
-// --- ОТРИСОВКА МЕНЮ ШАБЛОНОВ И ФОРМ (F6) ---
-
 function renderMainMenu(MENU) {
     let html = Object.keys(MENU).map(function(k) {
         return `<input type="button" class="button custom-forum-btn category_button" value="${MENU[k].title}" data-category="${k}">`;
@@ -75,16 +73,12 @@ function renderCustomManager(config) {
     return html;
 }
 
-// --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ОКОН ---
-
 function closeModal(overlay) {
     overlay.classList.add('ah-closing');
     setTimeout(function() {
         if (document.body.contains(overlay)) document.body.removeChild(overlay);
     }, 250);
 }
-
-// --- ОКНО ОТКАЗА ЖАЛОБЫ (F5) ---
 
 function showRefusePrompt(callback) {
     const overlay = document.createElement('div');
@@ -145,7 +139,7 @@ function showRefusePrompt(callback) {
     const reasonInput = overlay.querySelector('#r-reason');
     const addBtn = overlay.querySelector('#r-add-custom');
 
-    // Логика тегов (по умолчанию активен "Отказано" - 18)
+    // Логика тегов
     let selectedPrefix = '18'; 
     overlay.querySelectorAll('.ah-tag-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
@@ -266,7 +260,6 @@ function showRefusePrompt(callback) {
     });
     
     overlay.querySelector('#r-submit').addEventListener('click', function() { 
-        // Фикс: конвертируем переносы строк и пробелы для редактора форума
         let finalReason = reasonInput.value.trim();
         finalReason = finalReason.replace(/\n/g, '<br>').replace(/  /g, ' &nbsp;');
         
@@ -278,8 +271,6 @@ function showRefusePrompt(callback) {
         closeModal(overlay); 
     });
 }
-
-// --- ОКНО ЗАПРОСА ОПРЫ ---
 
 function showOpraPrompt(extractedName, callback) {
     const overlay = document.createElement('div');
@@ -337,24 +328,19 @@ function showOpraPrompt(extractedName, callback) {
 
     let currentType = null;
 
-    // Логика красивого выделения
     overlay.querySelectorAll('.o-type-btn').forEach(function(btn) {
         btn.addEventListener('click', function(e) {
-            // Очищаем классы active и error со всех кнопок
             overlay.querySelectorAll('.o-type-btn').forEach(b => b.classList.remove('active', 'error'));
-            // Вешаем active на нажатую
             e.target.classList.add('active');
             currentType = e.target.dataset.type;
         });
     });
 
-    // Логика блокировки с тряской
     overlay.querySelectorAll('.o-btn').forEach(function(b) {
         b.addEventListener('click', function(e) { 
             if (!currentType) {
                 overlay.querySelectorAll('.o-type-btn').forEach(btn => {
                     btn.classList.add('error');
-                    // Снимаем класс ошибки после окончания анимации
                     setTimeout(() => btn.classList.remove('error'), 400);
                 });
                 return;
@@ -368,8 +354,6 @@ function showOpraPrompt(extractedName, callback) {
     overlay.querySelector('#o-cancel').addEventListener('click', function() { closeModal(overlay); });
     overlay.addEventListener('mousedown', function(e) { if (e.target === overlay) closeModal(overlay); });
 }
-
-// --- ОКНО ВЫДАЧИ НАКАЗАНИЙ (F4) ---
 
 function showVerdictPrompt(callback) {
     const threadMatch = window.location.href.match(/threads\/(?:.*?\.)?(\d+)/i);
@@ -774,12 +758,12 @@ function showVerdictPrompt(callback) {
             if (p.type === 'banfa') {
                 let faPostLink = extractedPostUrl || window.location.href.split('#')[0].split('page-')[0];
                 
-                // Для бана ФА оставляем: жбID(причина)
+                // Для бана ФА жбIDпричина
                 let faReasonStr = `жб${threadId}(${shortReason})`;
                 
                 commandsStr += `Ссылка на форумный аккаунт: ${fetchedFaProfile}\nПричина(с Вашим префиксом, с указанием сообщения): ${faPostLink} ${faReasonStr} ${adminTag}\nПинг: @Куратор сервера\n\n`;
             } else {
-                // ВОЗВРАЩЕНО: Для игры пишем просто "жб123456" без текстовой причины
+                // Для игры жб123456
                 commandsStr += `/${p.type} ${p.player}${p.time ? " " + p.time : ""} жб${threadId} ${adminTag}\n`;
             }
             
@@ -806,7 +790,6 @@ function showVerdictPrompt(callback) {
 
         window.dispatchEvent(new CustomEvent('AH_SAVE_CONFIG', { detail: eventDetail }));
 
-        // Передаем selectedPrefix в движок
         callback(punishments, punishmentsHtml, finalRuleText, logLine, selectedPrefix);
         closeModal(overlay);
     });
@@ -815,8 +798,6 @@ function showVerdictPrompt(callback) {
         closeModal(overlay);
     });
 }
-
-// --- ОКНО ВЫБОРА ДАТЫ ---
 
 function showCustomDatePrompt(callback) {
     const overlay = document.createElement('div');
@@ -860,10 +841,9 @@ function showCustomDatePrompt(callback) {
 
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
-        // Ищем наше активное окно, которое еще не в процессе закрытия
         const activeOverlay = document.querySelector('.ah-modal-overlay:not(.ah-closing)');
         if (activeOverlay) {
-            e.preventDefault(); // Глушим стандартное поведение браузера на всякий случай
+            e.preventDefault(); // Глушим стандартное поведение браузера
             closeModal(activeOverlay);
         }
     }

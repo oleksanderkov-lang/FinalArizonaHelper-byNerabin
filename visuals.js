@@ -1,6 +1,3 @@
-// =========================================================================
-// 1. АНТИ-МОРГАНИЕ (Срабатывает за миллисекунду до начала отрисовки страницы)
-// =========================================================================
 try {
     if (localStorage.getItem('ah_old_style') === 'true') {
         document.documentElement.classList.add('ah-old-style');
@@ -12,7 +9,6 @@ try {
     const savedTrans = localStorage.getItem('ah_transparency');
     if (savedTrans) document.documentElement.style.setProperty('--ah-surface', savedTrans, 'important');
 
-    // 1. СИНХРОННЫЙ КЕШ CSS (Мгновенное применение всех стилей без ожидания скриптов)
     const cachedCss = localStorage.getItem('ah_cached_css');
     if (cachedCss) {
         const preStyle = document.createElement('style');
@@ -21,23 +17,18 @@ try {
         document.documentElement.appendChild(preStyle);
     }
 
-    // 2. ИДЕЯ ПОЛЬЗОВАТЕЛЯ: Плавная "шторка" загрузки (скрывает скачки XenForo)
     const antiFlicker = document.createElement('style');
     antiFlicker.id = 'ah-anti-flicker';
-    // Если кастомный фон включен, сразу делаем подложку темной, чтобы не било по глазам белым
     const bgVal = localStorage.getItem('ah_custom_bg') === 'true' ? '#0b0b10' : 'transparent';
     antiFlicker.textContent = `html { opacity: 0 !important; background: ${bgVal} !important; transition: opacity 0.25s ease-out !important; }`;
     document.documentElement.appendChild(antiFlicker);
 
-    // Функция проявления страницы
     const revealPage = function() {
         if (!document.getElementById('ah-anti-flicker')) return;
         antiFlicker.textContent = `html { opacity: 1 !important; background: ${bgVal} !important; transition: opacity 0.25s ease-out !important; }`;
-        // Удаляем костыль после окончания анимации (чтобы не мешал дальше)
         setTimeout(() => { if (antiFlicker.parentNode) antiFlicker.remove(); }, 300);
     };
 
-    // Снимаем шторку, когда форум почти загрузился, либо принудительно через 350мс
     document.addEventListener('DOMContentLoaded', revealPage);
     setTimeout(revealPage, 350);
 
@@ -71,7 +62,6 @@ window.AH_Visuals = (function () {
         };
     }
 
-    // Подбор цвета
     function shiftHue(hex, degree) {
         let r = hexToRgbFast(hex).r / 255, g = hexToRgbFast(hex).g / 255, b = hexToRgbFast(hex).b / 255;
         let max = Math.max(r, g, b), min = Math.min(r, g, b);
@@ -86,7 +76,7 @@ window.AH_Visuals = (function () {
             }
             h /= 6;
         }
-        h = (h + (degree / 360)) % 1; // Крутим колесо
+        h = (h + (degree / 360)) % 1;
         let r2, g2, b2;
         if (s === 0) { r2 = g2 = b2 = l; } else {
             const hue2rgb = (p, q, t) => {
@@ -130,7 +120,6 @@ window.AH_Visuals = (function () {
             localStorage.setItem('ah_custom_bg', !!CONFIG.customBgEnabled);
         } catch(e) {}
 
-        // Принудительно перезаписываем цвет в HTML-теге, пробивая блокировку анти-моргания
         document.documentElement.style.setProperty('--ah-accent', tc, 'important');
 
         let css = `
@@ -170,7 +159,6 @@ window.AH_Visuals = (function () {
 
         if (cachedThemeStyle.textContent !== css) {
             cachedThemeStyle.textContent = css;
-            // Сохраняем весь сгенерированный CSS-код в аппаратную память
             try { localStorage.setItem('ah_cached_css', css); } catch(e) {}
         }
     }
@@ -194,10 +182,6 @@ window.AH_Visuals = (function () {
         }
 
         if (CONFIG.customBgEnabled) {
-            // ОПТИМИЗАЦИЯ:
-            // 1. Убрали жрущий ресурсы filter: blur(140px)
-            // 2. Сферы увеличены в размере, так как градиент встроен внутрь блока (а blur выходил за его пределы)
-            // 3. Используем радиальный градиент с идеальным затуханием (transparent)
             styleEl.textContent = `
                 html, body, .p-pageWrapper { background: transparent !important; background-color: transparent !important; background-image: none !important; }
                 .p-pageWrapper { position: relative; z-index: 1; }
@@ -354,7 +338,6 @@ window.AH_Visuals = (function () {
         if (!canvas) {
             canvas = document.createElement('canvas'); 
             canvas.id = 'ah-particles-bg';
-            // Стандартное поведение - канвас поверх заднего фона, но за карточками (z-index: 0)
             Object.assign(canvas.style, { position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh', zIndex: '0', pointerEvents: 'none', opacity: '0.85', transition: 'opacity 0.5s ease', willChange: 'transform' });
             document.body.appendChild(canvas);
         }

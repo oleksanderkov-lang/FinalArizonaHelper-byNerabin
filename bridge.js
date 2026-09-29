@@ -45,8 +45,7 @@ chrome.storage.local.get(defaultSettings, function(items) {
 
 window.addEventListener('AH_SAVE_CONFIG', function(e) {
     let newData = e.detail;
-    
-    // Умное добавление в конец массива (защита от нескольких открытых вкладок)
+
     if (newData.newPendingForm || newData.incrementChecked) {
         chrome.storage.local.get(['pendingForms', 'totalChecked'], function(current) {
             if (newData.newPendingForm) {
