@@ -8,9 +8,39 @@ try {
         document.documentElement.classList.remove('ah-old-style');
     }
     const savedColor = localStorage.getItem('ah_theme_color');
-    if (savedColor) {
-        document.documentElement.style.setProperty('--ah-accent', savedColor, 'important');
+    if (savedColor) document.documentElement.style.setProperty('--ah-accent', savedColor, 'important');
+    const savedTrans = localStorage.getItem('ah_transparency');
+    if (savedTrans) document.documentElement.style.setProperty('--ah-surface', savedTrans, 'important');
+
+    // 1. СИНХРОННЫЙ КЕШ CSS (Мгновенное применение всех стилей без ожидания скриптов)
+    const cachedCss = localStorage.getItem('ah_cached_css');
+    if (cachedCss) {
+        const preStyle = document.createElement('style');
+        preStyle.id = 'ah-theme-style';
+        preStyle.textContent = cachedCss;
+        document.documentElement.appendChild(preStyle);
     }
+
+    // 2. ИДЕЯ ПОЛЬЗОВАТЕЛЯ: Плавная "шторка" загрузки (скрывает скачки XenForo)
+    const antiFlicker = document.createElement('style');
+    antiFlicker.id = 'ah-anti-flicker';
+    // Если кастомный фон включен, сразу делаем подложку темной, чтобы не било по глазам белым
+    const bgVal = localStorage.getItem('ah_custom_bg') === 'true' ? '#0b0b10' : 'transparent';
+    antiFlicker.textContent = `html { opacity: 0 !important; background: ${bgVal} !important; transition: opacity 0.25s ease-out !important; }`;
+    document.documentElement.appendChild(antiFlicker);
+
+    // Функция проявления страницы
+    const revealPage = function() {
+        if (!document.getElementById('ah-anti-flicker')) return;
+        antiFlicker.textContent = `html { opacity: 1 !important; background: ${bgVal} !important; transition: opacity 0.25s ease-out !important; }`;
+        // Удаляем костыль после окончания анимации (чтобы не мешал дальше)
+        setTimeout(() => { if (antiFlicker.parentNode) antiFlicker.remove(); }, 300);
+    };
+
+    // Снимаем шторку, когда форум почти загрузился, либо принудительно через 350мс
+    document.addEventListener('DOMContentLoaded', revealPage);
+    setTimeout(revealPage, 350);
+
 } catch (e) {}
 
 window.AH_Visuals = (function () {
@@ -41,6 +71,39 @@ window.AH_Visuals = (function () {
         };
     }
 
+    // Подбор цвета
+    function shiftHue(hex, degree) {
+        let r = hexToRgbFast(hex).r / 255, g = hexToRgbFast(hex).g / 255, b = hexToRgbFast(hex).b / 255;
+        let max = Math.max(r, g, b), min = Math.min(r, g, b);
+        let h, s, l = (max + min) / 2;
+        if (max === min) { h = s = 0; } else {
+            let d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+            h /= 6;
+        }
+        h = (h + (degree / 360)) % 1; // Крутим колесо
+        let r2, g2, b2;
+        if (s === 0) { r2 = g2 = b2 = l; } else {
+            const hue2rgb = (p, q, t) => {
+                if (t < 0) t += 1; if (t > 1) t -= 1;
+                if (t < 1/6) return p + (q - p) * 6 * t;
+                if (t < 1/2) return q;
+                if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                return p;
+            };
+            let q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            let p = 2 * l - q;
+            r2 = hue2rgb(p, q, h + 1/3); g2 = hue2rgb(p, q, h); b2 = hue2rgb(p, q, h - 1/3);
+        }
+        const toHex = x => { const hx = Math.round(x * 255).toString(16); return hx.length === 1 ? '0' + hx : hx; };
+        return `#${toHex(r2)}${toHex(g2)}${toHex(b2)}`;
+    }
+
    function applyThemeColors() {
         if (!cachedThemeStyle) {
             cachedThemeStyle = document.getElementById('ah-theme-style') || document.createElement('style');
@@ -50,23 +113,31 @@ window.AH_Visuals = (function () {
             }
         }
 
-        // Добавляем маркер старого стиля к HTML для полного перехвата CSS
         document.documentElement.classList.toggle('ah-old-style', !!CONFIG.oldStyleEnabled);
 
         const tc = CONFIG.themeColor || "#3498db";
         const rgb = hexToRgbFast(tc);
         const op = 1 - ((CONFIG.transparency !== undefined ? CONFIG.transparency : 15) / 100);
         const tCols = CONFIG.threadCols || 2;
+        
+        const compColor = shiftHue(tc, 180); 
+        const analogColor = shiftHue(tc, 45);
 
-        // Сохраняем в localStorage для мгновенного применения при перезагрузке
         try {
             localStorage.setItem('ah_old_style', !!CONFIG.oldStyleEnabled);
             localStorage.setItem('ah_theme_color', tc);
+            localStorage.setItem('ah_transparency', `rgba(25, 25, 33, ${op})`);
+            localStorage.setItem('ah_custom_bg', !!CONFIG.customBgEnabled);
         } catch(e) {}
+
+        // Принудительно перезаписываем цвет в HTML-теге, пробивая блокировку анти-моргания
+        document.documentElement.style.setProperty('--ah-accent', tc, 'important');
 
         let css = `
             :root, html[data-color-scheme="light"], html[data-color-scheme="dark"] {
                 --ah-accent: ${tc} !important; 
+                --ah-accent-comp: ${compColor} !important; 
+                --ah-accent-analog: ${analogColor} !important; 
                 --ah-border-h: rgba(${rgb.r},${rgb.g},${rgb.b}, 0.5) !important; 
                 --ah-glow: rgba(${rgb.r},${rgb.g},${rgb.b}, 0.25) !important;
                 --ah-btn: rgba(255, 255, 255, 0.05) !important;
@@ -97,273 +168,93 @@ window.AH_Visuals = (function () {
             `;
         }
 
-        if (CONFIG.oldStyleEnabled) {
-            css += `
-                /* ======================================= */
-                /* ГЛОБАЛЬНЫЕ КОНТЕЙНЕРЫ (СТАРЫЙ СТИЛЬ)    */
-                /* ======================================= */
-                html.ah-old-style .block-container:has(.node-body), html.ah-old-style .block-container:has(.structItemContainer) {
-                    background: var(--ah-surface) !important;
-                    border: 1px solid var(--ah-border-fallback) !important;
-                    border-radius: 8px !important;
-                    box-shadow: 0 4px 15px var(--ah-shadow) !important;
-                    padding: 0 !important;
-                }
-                html.ah-old-style .block-body:has(.node-body), html.ah-old-style .structItemContainer-group {
-                    display: block !important;
-                    padding: 0 !important;
-                    background: transparent !important;
-                    margin: 0 !important;
-                }
-
-               /* СБРОС КАРТОЧЕК ДО СТРОК ТАБЛИЦЫ (ТЕМЫ) */
-                html.ah-old-style .structItem { display: table !important; table-layout: fixed !important; width: 100% !important; margin: 0 !important; padding: 0 !important; border: none !important; border-bottom: 1px solid var(--ah-border-fallback) !important; border-radius: 0 !important; box-shadow: none !important; background: transparent !important; height: auto !important; overflow: visible !important; }
-                html.ah-old-style .structItem:last-child { border-bottom: none !important; }
-                html.ah-old-style .structItem:hover { transform: none !important; background: rgba(255, 255, 255, 0.03) !important; box-shadow: none !important; z-index: 1 !important; }
-
-                /* ЯЧЕЙКИ (CELLS) В ТЕМАХ */
-                html.ah-old-style .structItem-cell { display: table-cell !important; vertical-align: middle !important; padding: 4px 10px !important; position: static !important; width: auto !important; height: auto !important; float: none !important; box-sizing: border-box !important; border: none !important; }
-                html.ah-old-style .structItem-cell--main { width: 100% !important; }
-                html.ah-old-style .structItem-cell--icon, html.ah-old-style .structItem-cell--iconEnd { width: 84px !important; padding: 10px 12px !important; text-align: center !important; }
-                html.ah-old-style .structItem-cell--meta { width: 140px !important; text-align: right !important; }
-                html.ah-old-style .structItem-cell--latest { width: 180px !important; text-align: right !important; flex-direction: column !important; }
-                
-                /* ГЛАВНЫЕ АВАТАРКИ В ТЕМАХ */
-                html.ah-old-style .structItem-cell--icon .avatar:not(.structItem-secondaryIcon), html.ah-old-style .structItem-cell--iconEnd .avatar:not(.structItem-secondaryIcon) { width: 50px !important; height: 50px !important; min-width: 50px !important; min-height: 50px !important; max-width: 50px !important; max-height: 50px !important; border: none !important; box-shadow: none !important; font-size: 28px !important; display: flex !important; align-items: center !important; justify-content: center !important; border-radius: 50% !important; overflow: hidden !important; aspect-ratio: 1/1 !important; }
-                html.ah-old-style .structItem-iconContainer { width: 50px !important; height: 50px !important; min-height: 50px !important; margin: 0 auto !important; position: relative !important; display: flex !important; align-items: center !important; justify-content: center !important; aspect-ratio: 1/1 !important; }
-                html.ah-old-style .structItem-cell--icon .avatar:not(.structItem-secondaryIcon) img, html.ah-old-style .structItem-cell--iconEnd .avatar:not(.structItem-secondaryIcon) img { width: 100% !important; height: 100% !important; min-height: 50px !important; border-radius: 50% !important; display: block !important; object-fit: cover !important; }
-                
-                /* МАЛЕНЬКАЯ ИКОНКА (ЕСЛИ ВЫ ОТВЕТИЛИ В ТЕМЕ) */
-                html.ah-old-style .structItem-secondaryIcon { position: absolute !important; bottom: -2px !important; right: -2px !important; width: 30px !important; height: 30px !important; min-width: 30px !important; min-height: 30px !important; max-width: 30px !important; max-height: 30px !important; border-radius: 50% !important; border: 2px solid var(--ah-surface) !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: none !important; overflow: hidden !important; padding: 0 !important; z-index: 10 !important; }
-                html.ah-old-style .structItem-secondaryIcon img { width: 100% !important; height: 100% !important; min-height: 20px !important; border-radius: 50% !important; display: block !important; object-fit: cover !important; }
-                
-                /* ЗАГОЛОВОК И ДЕТАЛИ ТЕМ */
-                html.ah-old-style .structItem-title { font-size: 15px !important; font-weight: normal !important; margin: 0 !important; padding: 0 !important; position: static !important; }
-                html.ah-old-style .structItem-title > a:not(.labelLink) { display: inline !important; }
-                html.ah-old-style .structItem-title .labelLink .label { display: inline-block !important; padding: 2px 6px !important; margin: 0 4px 0 0 !important; border: none !important; box-shadow: none !important; }
-                html.ah-old-style .structItem-parts { position: static !important; display: block !important; margin: 2px 0 0 0 !important; width: auto !important; height: auto !important; flex-direction: row !important; }
-                html.ah-old-style .structItem-parts li { display: inline !important; color: #8c8c8c !important; font-size: 12px !important; text-align: left !important; }
-                html.ah-old-style .structItem-parts li::after { content: "·" !important; display: inline !important; margin: 0 4px !important; color: #8c8c8c !important; opacity: 1 !important; animation: none !important; font-family: inherit !important; font-weight: normal !important; }
-                html.ah-old-style .structItem-parts li:last-child::after { content: none !important; display: none !important; }
-                html.ah-old-style .structItem-parts .structItem-startDate { font-size: 12px !important; display: inline !important; }
-                
-                html.ah-old-style .structItem-statuses, html.ah-old-style .structItem-extraInfoMinor, html.ah-old-style .structItem-title > span.label, html.ah-old-style .structItem-pageJump { display: inline-block !important; position: static !important; }
-                html.ah-old-style .structItem-statuses li { display: inline-block !important; margin-right: 4px !important; float: left !important; }
-                html.ah-old-style .structItem-pageJump { margin-left: 8px !important; }
-                html.ah-old-style .structItem-pageJump a { padding: 1px 4px !important; background: rgba(255,255,255,0.05) !important; color: #aaa !important; font-size: 11px !important; text-decoration: none !important; border-radius: 2px !important; margin-right: 2px !important; border: none !important; }
-                html.ah-old-style .structItem-extraInfo { position: static !important; display: inline-flex !important; flex-direction: row !important; }
-                
-                /* МЕТА-СТАТИСТИКА (ОТВЕТЫ/ПРОСМОТРЫ) */
-                html.ah-old-style .structItem-cell--meta dl { display: flex !important; flex-direction: row !important; justify-content: flex-end !important; align-items: baseline !important; margin: 4px 0 !important; width: 100% !important; gap: 6px !important; }
-                html.ah-old-style .structItem-cell--meta dt { display: block !important; color: #8c8c8c !important; font-weight: normal !important; font-size: 12px !important; margin: 0 !important; }
-                html.ah-old-style .structItem-cell--meta dt::after { content: ":" !important; }
-                html.ah-old-style .structItem-cell--meta dd { display: block !important; margin: 0 !important; font-size: 12px !important; font-weight: normal !important; color: var(--ah-text, #fff) !important; }
-                html.ah-old-style .structItem-cell--meta dl:first-child dd::before, html.ah-old-style .structItem-cell--meta dl:last-child dd::before { display: none !important; }
-                
-                /* ПОСЛЕДНИЙ ОТВЕТ */
-                html.ah-old-style .structItem-cell--latest > a, html.ah-old-style .structItem-cell--latest .structItem-minor { display: block !important; width: auto !important; text-align: right !important; line-height: 1.4 !important; height: auto !important; }
-                html.ah-old-style .structItem-cell--latest .username { display: inline !important; padding: 0 !important; margin: 0 !important; font-weight: normal !important; font-size: 12px !important; }
-                
-                /* ВОЗВРАЩАЕМ ЛОКАЛЬНЫЙ ПОИСК В СТАРОМ СТИЛЕ */
-                html.ah-old-style #ah-live-filter { display: flex !important; margin-bottom: 12px !important; }
-
-                /* ======================================= */
-                /* РАЗДЕЛЫ ФОРУМА (NODES)                  */
-                /* ======================================= */
-                html.ah-old-style .block-body:has(> .node), html.ah-old-style .block-body:has(.node-body) { 
-                    display: block !important; 
-                    padding: 0 0 16px 0 !important; 
-                    background: transparent !important; 
-                }
-                html.ah-old-style .node { display: block !important; width: 100% !important; margin: 0 !important; padding: 0 !important; border: none !important; }
-                
-                html.ah-old-style .node-body { 
-                    display: flex !important; 
-                    flex-direction: row !important; 
-                    align-items: center !important; 
-                    width: 100% !important; 
-                    margin: 0 !important; 
-                    padding: 12px 16px !important; 
-                    border: none !important; 
-                    border-bottom: 1px solid var(--ah-border-fallback) !important; 
-                    border-radius: 0 !important; 
-                    box-shadow: none !important; 
-                    background: transparent !important; 
-                    min-height: 0 !important; 
-                    height: auto !important; 
-                    transition: background 0.2s ease !important; 
-                    box-sizing: border-box !important; 
-                }
-                html.ah-old-style .node-body:last-child { border-bottom: none !important; }
-                html.ah-old-style .node-body:hover { transform: none !important; box-shadow: none !important; background: rgba(255, 255, 255, 0.03) !important; z-index: 1 !important; }
-                html.ah-old-style .node-body::before, html.ah-old-style .node-body::after { display: none !important; content: none !important; }
-
-                /* ИКОНКА РАЗДЕЛА */
-                html.ah-old-style .node-icon { 
-                    position: static !important; 
-                    display: flex !important; 
-                    align-items: center !important; 
-                    justify-content: center !important; 
-                    width: 48px !important; 
-                    height: 48px !important; 
-                    min-width: 48px !important; 
-                    min-height: 48px !important; 
-                    padding: 0 !important; 
-                    margin: 0 16px 0 0 !important; 
-                    background: rgba(255, 255, 255, 0.05) !important; 
-                    border-radius: 12px !important; 
-                    opacity: 1 !important; 
-                    transform: none !important; 
-                    pointer-events: auto !important; 
-                    box-shadow: none !important;
-                    flex-shrink: 0 !important;
-                    overflow: hidden !important;
-                }
-                
-                html.ah-old-style .node-body.node--unread .node-icon { background: var(--ah-accent) !important; box-shadow: 0 4px 15px var(--ah-glow) !important; }
-                html.ah-old-style .node-body:hover .node-icon { opacity: 1 !important; transform: none !important; }
-                
-                /* ЧИСТИМ SVG ОТ XENFORO-КРАСКИ */
-                html.ah-old-style .node-icon::before, html.ah-old-style .node-icon::after,
-                html.ah-old-style .node-icon i::before, html.ah-old-style .node-icon i::after { display: none !important; content: none !important; background-image: none !important; }
-
-                html.ah-old-style .node-icon i {
-                    display: flex !important; align-items: center !important; justify-content: center !important;
-                    width: 100% !important; height: 100% !important; background: transparent !important;
-                    border: none !important; box-shadow: none !important; margin: 0 !important; padding: 0 !important; font-size: 0 !important;
-                }
-
-                html.ah-old-style .node-icon svg { 
-                    display: block !important; 
-                    width: 24px !important; height: 24px !important; min-width: 24px !important; min-height: 24px !important;
-                    margin: 0 !important; padding: 0 !important; background: transparent !important;
-                    color: rgba(255, 255, 255, 0.4) !important; fill: currentColor !important; transition: color 0.3s ease !important;
-                    box-shadow: none !important;
-                }
-                html.ah-old-style .node-body.node--unread .node-icon svg { color: #fff !important; }
-
-                /* ОСНОВНАЯ ИНФА О РАЗДЕЛЕ */
-                html.ah-old-style .node-main { 
-                    display: flex !important; 
-                    flex-direction: column !important; 
-                    justify-content: center !important; 
-                    flex: 1 1 auto !important; 
-                    min-width: 0 !important; 
-                    padding: 0 !important; 
-                    margin: 0 !important; 
-                    border: none !important; 
-                    max-width: none !important; 
-                }
-                html.ah-old-style .node-title { 
-                    font-size: 15px !important; margin: 0 !important; font-weight: 700 !important; 
-                    line-height: 1.3 !important; display: flex !important; align-items: center !important; flex-wrap: wrap !important; gap: 8px !important; 
-                }
-                html.ah-old-style .node-title a { color: var(--ah-text, #fff) !important; }
-                html.ah-old-style .node-description, html.ah-old-style .node-meta { display: none !important; }
-
-                html.ah-old-style .node--newIndicator { 
-                    display: inline-block !important; background: #f39c12 !important; color: #fff !important; 
-                    padding: 2px 6px !important; border-radius: 6px !important; font-size: 9px !important; 
-                    font-weight: 800 !important; text-transform: uppercase !important; line-height: 1.2 !important; margin: 0 !important;
-                }
-
-                /* СТАТИСТИКА РАЗДЕЛА */
-                html.ah-old-style .node-stats { 
-                    display: flex !important; align-items: center !important; justify-content: flex-end !important; 
-                    flex-shrink: 0 !important; position: static !important; transform: none !important; 
-                    width: 100px !important; padding: 0 24px 0 0 !important; margin: 0 !important; background: transparent !important; border: none !important; 
-                }
-                html.ah-old-style .node-stats dl { display: flex !important; align-items: center !important; gap: 6px !important; margin: 0 !important; }
-                html.ah-old-style .node-stats dt { display: inline-flex !important; font-size: 0 !important; margin: 0 !important; color: transparent !important; opacity: 1 !important; }
-                html.ah-old-style .node-stats dt i, html.ah-old-style .node-stats dt svg { font-size: 14px !important; color: #666 !important; display: inline-block !important; }
-                html.ah-old-style .node-stats dl:first-child dd::before { display: none !important; }
-                html.ah-old-style .node-stats dd { display: inline-block !important; font-weight: 600 !important; font-size: 13px !important; margin: 0 !important; color: #aaa !important; }
-
-                /* ПОСЛЕДНЯЯ ТЕМА В РАЗДЕЛЕ (АВАТАРКА СПРАВА, ТЕКСТ ПО ПРАВОМУ КРАЮ) */
-                html.ah-old-style .node-extra { 
-                    display: grid !important; 
-                    grid-template-columns: minmax(0, 1fr) 36px !important; 
-                    grid-template-rows: auto auto !important; 
-                    column-gap: 12px !important; 
-                    row-gap: 4px !important;
-                    align-items: center !important; 
-                    flex-shrink: 0 !important; 
-                    width: 320px !important; 
-                    padding: 0 16px 0 0 !important; 
-                    margin: 0 !important; 
-                    border-left: none !important; 
-                    position: static !important; 
-                    transform: none !important; 
-                }
-                html.ah-old-style .node-extra-icon { 
-                    grid-column: 2 !important;
-                    grid-row: 1 / span 2 !important;
-                    display: flex !important; 
-                    align-items: center !important; 
-                    justify-content: center !important; 
-                    margin: 0 !important; 
-                    padding: 0 !important; 
-                    position: static !important; 
-                    float: none !important; 
-                }
-                html.ah-old-style .node-extra-icon .avatar { width: 36px !important; height: 36px !important; min-width: 36px !important; border: none !important; box-shadow: none !important; border-radius: 50% !important; overflow: hidden !important; }
-                html.ah-old-style .node-extra-icon .avatar img { width: 100% !important; height: 100% !important; border-radius: 50% !important; object-fit: cover !important; }
-                
-                html.ah-old-style .node-extra-row:nth-of-type(1) { 
-                    grid-column: 1 !important;
-                    grid-row: 1 !important;
-                    display: block !important; margin: 0 !important; padding: 0 !important; text-align: right !important; 
-                }
-                html.ah-old-style .node-extra-title { display: block !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; font-weight: normal !important; color: var(--ah-text, #fff) !important; font-size: 13px !important; width: 100% !important; max-width: none !important; }
-                
-                html.ah-old-style .node-extra-row:nth-of-type(2) { 
-                    grid-column: 1 !important;
-                    grid-row: 2 !important;
-                    display: block !important; margin: 0 !important; padding: 0 !important; text-align: right !important; 
-                }
-                html.ah-old-style .node-extra-date { color: #8c8c8c !important; font-size: 12px !important; }
-                html.ah-old-style .node-extra-user { display: inline !important; }
-                html.ah-old-style .node-extra-user .username { font-weight: normal !important; font-size: 12px !important; }
-                html.ah-old-style .node-extra-row ul.listInline { display: flex !important; justify-content: flex-end !important; align-items: center !important; margin: 0 !important; padding: 0 !important; gap: 6px !important; }
-                html.ah-old-style .node-extra-row ul.listInline > li { display: inline-flex !important; font-size: 12px !important; color: #8c8c8c !important; }
-                html.ah-old-style .node-extra-row ul.listInline > li::before, html.ah-old-style .node-extra-row ul.listInline > li::after { display: none !important; }
-            `;
-        }
-
         if (cachedThemeStyle.textContent !== css) {
             cachedThemeStyle.textContent = css;
+            // Сохраняем весь сгенерированный CSS-код в аппаратную память
+            try { localStorage.setItem('ah_cached_css', css); } catch(e) {}
         }
     }
 
-    function initCustomBackground() {
+   function initCustomBackground() {
         if (!cachedBgContainer) {
             cachedBgContainer = document.getElementById('ah-animated-bg');
             if (!cachedBgContainer) {
                 cachedBgContainer = document.createElement('div');
                 cachedBgContainer.id = 'ah-animated-bg';
-                
-                const style = document.createElement('style');
-                style.id = 'ah-bg-style';
-                style.textContent = `
-                    html, body, .p-pageWrapper { background: transparent !important; background-color: transparent !important; background-image: none !important; }
-                    .p-pageWrapper { position: relative; z-index: 1; }
-                    #ah-animated-bg { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; background: #0b0b10; overflow: hidden; pointer-events: none; will-change: transform; transform: translateZ(0); }
-                    .ah-light { position: absolute; border-radius: 50%; filter: blur(140px); transition: opacity 0.5s ease; will-change: transform, opacity; transform: translateZ(0); }
-                    .ah-light-1 { width: 45vw; height: 45vw; background: var(--ah-accent); top: -20%; left: -10%; animation: ah-float-1 12s infinite ease-in-out alternate; }
-                    .ah-light-2 { width: 40vw; height: 40vw; background: #8e44ad; bottom: -20%; right: -10%; animation: ah-float-2 18s infinite ease-in-out alternate -5s; }
-                    .ah-light-3 { width: 35vw; height: 35vw; background: #2980b9; top: 30%; left: 40%; animation: ah-float-3 15s infinite ease-in-out alternate -2s; }
-                    
-                    @keyframes ah-float-1 { 0% { transform: translate3d(0, 0, 0) scale(0.8); opacity: 0.15; } 50% { transform: translate3d(10vw, 5vh, 0) scale(1.1); opacity: 0.5; } 100% { transform: translate3d(-5vw, 15vh, 0) scale(0.9); opacity: 0.15; } }
-                    @keyframes ah-float-2 { 0% { transform: translate3d(0, 0, 0) scale(0.8); opacity: 0.15; } 50% { transform: translate3d(-10vw, -5vh, 0) scale(1.1); opacity: 0.5; } 100% { transform: translate3d(5vw, -15vh, 0) scale(0.9); opacity: 0.15; } }
-                    @keyframes ah-float-3 { 0% { transform: translate3d(0, 0, 0) scale(0.8); opacity: 0.15; } 50% { transform: translate3d(5vw, 10vh, 0) scale(1.1); opacity: 0.5; } 100% { transform: translate3d(-10vw, -5vh, 0) scale(0.9); opacity: 0.15; } }
-                `;
-                document.head.appendChild(style);
                 cachedBgContainer.innerHTML = `<div class="ah-light ah-light-1"></div><div class="ah-light ah-light-2"></div><div class="ah-light ah-light-3"></div>`;
                 document.body.prepend(cachedBgContainer);
             }
         }
         
-        cachedBgContainer.style.display = CONFIG.customBgEnabled ? 'block' : 'none';
+        let styleEl = document.getElementById('ah-bg-style');
+        if (!styleEl) {
+            styleEl = document.createElement('style');
+            styleEl.id = 'ah-bg-style';
+            document.head.appendChild(styleEl);
+        }
+
+        if (CONFIG.customBgEnabled) {
+            // ОПТИМИЗАЦИЯ:
+            // 1. Убрали жрущий ресурсы filter: blur(140px)
+            // 2. Сферы увеличены в размере, так как градиент встроен внутрь блока (а blur выходил за его пределы)
+            // 3. Используем радиальный градиент с идеальным затуханием (transparent)
+            styleEl.textContent = `
+                html, body, .p-pageWrapper { background: transparent !important; background-color: transparent !important; background-image: none !important; }
+                .p-pageWrapper { position: relative; z-index: 1; }
+                
+                #ah-animated-bg { 
+                    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+                    z-index: 0; background: #0b0b10; overflow: hidden; 
+                    pointer-events: none; 
+                }
+                
+                .ah-light { 
+                    position: absolute; 
+                    border-radius: 50%; 
+                    will-change: transform, opacity; 
+                    transform: translateZ(0); 
+                }
+                
+                .ah-light-1 { 
+                    width: 60vw; height: 60vw; 
+                    background: radial-gradient(circle, var(--ah-accent) 0%, transparent 60%); 
+                    top: -25%; left: -15%; 
+                    animation: ah-float-1 12s infinite ease-in-out alternate; 
+                }
+                .ah-light-2 { 
+                    width: 55vw; height: 55vw; 
+                    background: radial-gradient(circle, var(--ah-accent-comp) 0%, transparent 60%); 
+                    bottom: -25%; right: -15%; 
+                    animation: ah-float-2 18s infinite ease-in-out alternate -5s; 
+                }
+                .ah-light-3 { 
+                    width: 50vw; height: 50vw; 
+                    background: radial-gradient(circle, var(--ah-accent-analog) 0%, transparent 60%); 
+                    top: 25%; left: 35%; 
+                    animation: ah-float-3 15s infinite ease-in-out alternate -2s; 
+                }
+                
+                @keyframes ah-float-1 { 
+                    0% { transform: translate3d(0, 0, 0) scale(0.8); opacity: 0.15; } 
+                    50% { transform: translate3d(8vw, 4vh, 0) scale(1.1); opacity: 0.4; } 
+                    100% { transform: translate3d(-4vw, 10vh, 0) scale(0.9); opacity: 0.15; } 
+                }
+                @keyframes ah-float-2 { 
+                    0% { transform: translate3d(0, 0, 0) scale(0.8); opacity: 0.15; } 
+                    50% { transform: translate3d(-8vw, -4vh, 0) scale(1.1); opacity: 0.4; } 
+                    100% { transform: translate3d(4vw, -10vh, 0) scale(0.9); opacity: 0.15; } 
+                }
+                @keyframes ah-float-3 { 
+                    0% { transform: translate3d(0, 0, 0) scale(0.8); opacity: 0.15; } 
+                    50% { transform: translate3d(4vw, 8vh, 0) scale(1.1); opacity: 0.4; } 
+                    100% { transform: translate3d(-8vw, -4vh, 0) scale(0.9); opacity: 0.15; } 
+                }
+            `;
+            cachedBgContainer.style.display = 'block';
+        } else {
+            styleEl.textContent = '';
+            cachedBgContainer.style.display = 'none';
+        }
     }
 
     function initClickableNodesFast() {
@@ -663,12 +554,15 @@ window.AH_Visuals = (function () {
         }, { passive: true });
     }
 
-    window.addEventListener('AH_SAVE_CONFIG', function(e) {
+    function updateAllVisuals(e) {
+        if (!e || !e.detail) return;
         Object.assign(CONFIG, e.detail);
         applyThemeColors();
-        initCustomBackground();
-        initParticlesBackground(true);
-    });
+        if (typeof initCustomBackground === 'function') initCustomBackground();
+        if (typeof initParticlesBackground === 'function') initParticlesBackground(true);
+    }
+    window.addEventListener('AH_SAVE_CONFIG', updateAllVisuals);
+    window.addEventListener('AH_UPDATE_FROM_STORAGE', updateAllVisuals);
 
     return {
         init: function(config) {

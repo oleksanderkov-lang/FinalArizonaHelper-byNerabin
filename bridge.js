@@ -28,7 +28,11 @@ const defaultSettings = {
     hotkeyF4: "verdict",
     hotkeyF5: "refuse",
     customTemplates: [],
-    punishmentHistory: []
+    punishmentHistory: [],
+    pendingForms: [],
+    totalChecked: 0,
+    customRefuseReasons: [],
+    confirmOfftopDelete: true
 };
 
 chrome.storage.local.get(defaultSettings, function(items) {
@@ -40,5 +44,35 @@ chrome.storage.local.get(defaultSettings, function(items) {
 });
 
 window.addEventListener('AH_SAVE_CONFIG', function(e) {
-    chrome.storage.local.set(e.detail);
+    let newData = e.detail;
+    
+    // Умное добавление в конец массива (защита от нескольких открытых вкладок)
+    if (newData.newPendingForm || newData.incrementChecked) {
+        chrome.storage.local.get(['pendingForms', 'totalChecked'], function(current) {
+            if (newData.newPendingForm) {
+                let currentForms = current.pendingForms || [];
+                currentForms.push(newData.newPendingForm);
+                newData.pendingForms = currentForms;
+                delete newData.newPendingForm;
+            }
+            if (newData.incrementChecked) {
+                newData.totalChecked = (current.totalChecked || 0) + 1;
+                delete newData.incrementChecked;
+            }
+            chrome.storage.local.set(newData);
+        });
+    } else {
+        chrome.storage.local.set(newData);
+    }
+});
+
+// Синхронизация изменений между всеми открытыми вкладками
+chrome.storage.onChanged.addListener(function(changes, namespace) {
+    if (namespace === 'local') {
+        let update = {};
+        for (let [key, { newValue }] of Object.entries(changes)) {
+            update[key] = newValue;
+        }
+        window.dispatchEvent(new CustomEvent('AH_UPDATE_FROM_STORAGE', { detail: update }));
+    }
 });

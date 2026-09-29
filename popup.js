@@ -1,12 +1,24 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const textFields = ['nickname', 'organization', 'signature', 'discordWebhook', 'pEmojiText'];
-    const checkFields = ['blurEnabled', 'customBgEnabled', 'particlesEnabled', 'pFading', 'pLines', 'oldStyleEnabled'];
-    const rangeFields = ['pSize', 'pCount', 'pSpeed', 'transparency', 'threadCols', 'blurIntensity'];
+    // 1. ИНИЦИАЛИЗАЦИЯ И СТРУКТУРА ДАННЫХ
+    const defaultSettings = {
+        nickname: "Nick Name", organization: "LSPD", signature: "byNerabin", discordWebhook: "",
+        themeColor: "#3498db", themeTextColor: "#ffffff", pColor: "#3498db",
+        blurEnabled: false, blurIntensity: 15, particlesEnabled: true, customBgEnabled: true, 
+        pFading: true, oldStyleEnabled: false, pLines: true, pCount: 70, pSpeed: 0.5, pSize: 3,
+        threadCols: 2, transparency: 15, hotkeyF1: "inReview", hotkeyF2: "transferred", hotkeyF3: "wrongFormat", 
+        hotkeyF4: "verdict", hotkeyF5: "refuse",
+        pendingForms: [], totalChecked: 0, customRefuseReasons: [], customTemplates: [], confirmOfftopDelete: true
+    };
+
+    const textFields = ['nickname', 'organization', 'signature', 'discordWebhook'];
+    const checkFields = ['blurEnabled', 'customBgEnabled', 'particlesEnabled', 'pFading', 'oldStyleEnabled', 'pLines', 'confirmOfftopDelete'];
+    const rangeFields = ['pSize', 'pCount', 'pSpeed', 'threadCols', 'blurIntensity', 'transparency'];
     const colorFields = ['themeColor', 'themeTextColor', 'pColor'];
     const hotkeysIds = ['hotkeyF1', 'hotkeyF2', 'hotkeyF3', 'hotkeyF4', 'hotkeyF5'];
     
-    let currentHotkeys = { hotkeyF1: "none", hotkeyF2: "none", hotkeyF3: "none", hotkeyF4: "none", hotkeyF5: "none" };
+    let currentHotkeys = {};
 
+    // 2. ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
@@ -15,157 +27,62 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    function hexToRgb(hex) {
-        let h = hex.replace('#', '');
-        if (h.length === 3) h = h.split('').map(c => c + c).join('');
-        return { r: parseInt(h.substring(0, 2), 16) || 52, g: parseInt(h.substring(2, 4), 16) || 152, b: parseInt(h.substring(4, 6), 16) || 219 };
-    }
-
-    function applyAccentColor(col) {
-        document.documentElement.style.setProperty('--accent', col);
-        const rgb = hexToRgb(col);
-        document.documentElement.style.setProperty('--btn-grad', 'rgba(255, 255, 255, 0.05)');
-        document.documentElement.style.setProperty('--btn-grad-hover', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15)`);
-    }
-
-    function sanitizeHTML(str) {
-        if (!str) return "";
-        return str.replace(/[<>"'&]/g, function(match) {
-            return {'<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '&': '&amp;'}[match];
-        }).trim().substring(0, 100); 
-    }
-
-   const defaultSettings = {
-        nickname: "Nick Name", organization: "LSPD", signature: "byNerabin", discordWebhook: "",
-        themeColor: "#3498db", themeTextColor: "#ffffff", pColor: "#3498db",
-        blurEnabled: false, blurIntensity: 15, particlesEnabled: true, customBgEnabled: true, pFading: true, oldStyleEnabled: false,
-        pShape: "circle", pEmojiText: "🌸,✨,🔥", pLines: true, pCount: 70, pSpeed: 0.5, pSize: 3,
-        transparency: 15, threadCols: 2, customTemplates: [],
-        hotkeyF1: "inReview", hotkeyF2: "transferred", hotkeyF3: "wrongFormat", hotkeyF4: "verdict", hotkeyF5: "refuse"
-    };
-
-    const resetColorBtn = document.getElementById('resetColor');
-    if (resetColorBtn) {
-        resetColorBtn.addEventListener('click', () => {
-            const el = document.getElementById('themeColor');
-            const disp = document.getElementById('themeColorDisplay');
-            if (el) el.value = defaultSettings.themeColor;
-            if (disp) disp.textContent = defaultSettings.themeColor.toUpperCase();
-            applyAccentColor(defaultSettings.themeColor);
-        });
-    }
-
-    chrome.storage.local.get(defaultSettings, function(items) {
+    // 3. ПОСТРОЕНИЕ ВЫПАДАЮЩИХ СПИСКОВ БИНДЕРА (F1-F5)
+    function buildHotkeysDropdowns(items) {
         const categories = [
-            {
-                label: "👑 Администратор",
-                items: [
-                    {val: "verdict", text: "Форма Вердикта"}, {val: "refuse", text: "Отказ жалобы"},
-                    {val: "jbadm", text: "Ответ ЖБАДМ"}, {val: "jbadmError", text: "Ответ ЖБАДМ (ошибка)"},
-                    {val: "inReview", text: "ЖБ на рассмотрении"}, {val: "requestProof", text: "Запрос опровержения"},
-                    {val: "wrongFormat", text: "Не по форме"}, {val: "transferred", text: "Передано ст. адм"}
-                ]
-            },
-            {
-                label: "⚖️ Суд",
-                items: [
-                    {val: "takeLawsuit", text: "Принятие иска"}, {val: "requestExplanations", text: "Запрос опры (Суд)"},
-                    {val: "courtWrongFormat", text: "Иск не по форме"}, {val: "courtVerdictDefault", text: "Вердикт (Обычный)"},
-                    {val: "courtVerdictCriminal", text: "Вердикт Уголовного"}, {val: "courtVerdictFederal", text: "Вердикт Федерального"}
-                ]
-            },
-            {
-                label: "🚓 ПД / 👤 Адвокат",
-                items: [
-                    {val: "pdDefault", text: "Опра в иске (ПД)"}, {val: "playerDefault", text: "Подать исковое заявление"},
-                    {val: "lawyerPetition", text: "Ходатайство от адвоката"}, {val: "motionPlaintiff", text: "Ходатайство от истца"},
-                    {val: "motionDefendant", text: "Ходатайство от ответчика"}, {val: "addmotionDefendant", text: "Добавление к ход. от ответчика"},
-                    {val: "addmotionPlaintiff", text: "Добавление к ход. от истца"}, {val: "addlawyerPetition", text: "Добавление к ход. от адвоката"},
-                    {val: "addlawyerPetitionFromPlaintiff", text: "Добавл. адвоката (Истец)"}, {val: "addDefendantPetitionFromPlaintiff", text: "Добавл. адвоката (Ответчик)"}
-                ]
-            },
-            {
-                label: "🏛 Лидер/Зам (Гос)",
-                items: [
-                    {val: "otchetzamaGOV", text: "Отчёт заместителя (Гос)"}, {val: "otchetlideraGOV", text: "Отчёт лидера (Гос)"},
-                    {val: "AntiBlatGOV", text: "Подать анти-блат"}, {val: "PrikazMinsraUS", text: "Подать приказ (Министр)"},
-                    {val: "ViezdnieMP", text: "Выездное МП"}, {val: "PlanDeistviyMO", text: "Плановая деятельность"},
-                    {val: "MZProverka", text: "Подать проверку"}, {val: "MZRevision", text: "Подать ревизию/проверку"}
-                ]
-            },
-            {
-                label: "🔫 Лидер/Зам (Нелегалы)",
-                items: [
-                    {val: "otchetlideraNelegal", text: "Отчёт лидера (Гетто)"}, {val: "otchetlideraNelegalMaf", text: "Отчёт лидера (Мафии)"},
-                    {val: "NelegalPolBali", text: "Получить баллы (Гетто)"}, {val: "NelegalPolBaliMaf", text: "Получить баллы (Мафии)"},
-                    {val: "NelegalPotBali", text: "Потратить баллы (Гетто)"}, {val: "NelegalPotBaliMaf", text: "Потратить баллы (Мафии)"},
-                    {val: "NelegalMoroz", text: "Взять мороз"}, {val: "takethechilloff", text: "Снять мороз"},
-                    {val: "NelegalNeaktiv", text: "Взять Неактив"}, {val: "SnatVigPoZadaniu", text: "Снять выговор по заданию"},
-                    {val: "ZabitDiploma", text: "Забить дипломатию"}, {val: "GetTerra", text: "Запрос территорий"},
-                    {val: "GetBiz", text: "Запрос бизнесов"}
-                ]
-            },
-            {
-                label: "📂 Остальное",
-                items: [
-                    {val: "ghettoDefault", text: "Написать ЖБ на игрока"}, {val: "GiveOpra", text: "Дать опру (МП)"}
-                ]
-            }
+            { label: "👑 Администратор", items: [{val: "verdict", text: "Форма Вердикта"}, {val: "refuse", text: "Отказ жалобы"}, {val: "jbadm", text: "Ответ ЖБАДМ"}, {val: "inReview", text: "ЖБ на рассмотрении"}, {val: "requestProof", text: "Запрос опровержения"}, {val: "wrongFormat", text: "Не по форме"}, {val: "transferred", text: "Передано ст. адм"}] },
+            { label: "⚖️ Суд", items: [{val: "takeLawsuit", text: "Принятие иска"}, {val: "requestExplanations", text: "Запрос опры (Суд)"}, {val: "courtVerdictDefault", text: "Вердикт (Обычный)"}] },
+            { label: "🚓 ПД / 👤 Адвокат", items: [{val: "pdDefault", text: "Опра в иске (ПД)"}, {val: "playerDefault", text: "Подать исковое заявление"}, {val: "lawyerPetition", text: "Ходатайство от адвоката"}] },
+            { label: "🏛 Лидер/Зам (Гос)", items: [{val: "otchetzamaGOV", text: "Отчёт заместителя (Гос)"}, {val: "AntiBlatGOV", text: "Подать анти-блат"}] },
+            { label: "🔫 Лидер/Зам (Нелегалы)", items: [{val: "otchetlideraNelegal", text: "Отчёт лидера (Гетто)"}, {val: "NelegalMoroz", text: "Взять мороз"}] },
+            { label: "📂 Остальное", items: [{val: "ghettoDefault", text: "Написать ЖБ на игрока"}] }
         ];
 
-        // Генерируем выпадающие списки биндов
+        const containerHTML = document.getElementById('hotkeys-container');
+        containerHTML.innerHTML = '';
+
         hotkeysIds.forEach(id => {
             currentHotkeys[id] = items[id] || "none";
-            const container = document.getElementById('custom-' + id);
-            if (!container) return;
             
-            const selectedSpan = container.querySelector('.select-selected span:first-child');
-            const itemsDiv = container.querySelector('.select-items');
+            let wrapper = document.createElement('div');
+            wrapper.className = 'row custom-select';
+            wrapper.id = 'custom-' + id;
             
-            itemsDiv.innerHTML = '<div class="opt" data-val="none">-- Отключить --</div>';
-            let selectedText = "-- Отключить --";
+            let labelHtml = `<span style="font-size:13px; font-weight:600;">Клавиша ${id.replace('hotkey', '')}</span>`;
+            let selectHtml = `<div class="select-selected" style="width: 220px;"><span>-- Отключить --</span><span>▼</span></div><div class="select-items"></div>`;
+            
+            wrapper.innerHTML = labelHtml + `<div style="position:relative;">${selectHtml}</div>`;
+            containerHTML.appendChild(wrapper);
 
+            const selectedSpan = wrapper.querySelector('.select-selected span:first-child');
+            const itemsDiv = wrapper.querySelector('.select-items');
+            
+            let optHtml = `<div class="opt" data-val="none">-- Отключить --</div>`;
+            
             categories.forEach(cat => {
-                const group = document.createElement('div');
-                group.className = 'opt-group';
-                group.textContent = cat.label;
-                itemsDiv.appendChild(group);
-                
+                optHtml += `<div class="opt-group">${cat.label}</div>`;
                 cat.items.forEach(t => {
-                    const opt = document.createElement('div');
-                    opt.className = 'opt';
-                    opt.dataset.val = t.val;
-                    opt.textContent = t.text;
-                    if (t.val === currentHotkeys[id]) selectedText = t.text;
-                    itemsDiv.appendChild(opt);
+                    optHtml += `<div class="opt" data-val="${t.val}">${t.text}</div>`;
+                    if (t.val === currentHotkeys[id]) selectedSpan.textContent = t.text;
                 });
             });
 
             if (items.customTemplates && items.customTemplates.length > 0) {
-                const customGroup = document.createElement('div');
-                customGroup.className = 'opt-group';
-                customGroup.textContent = "🛠 Свои формы";
-                itemsDiv.appendChild(customGroup);
-                
+                optHtml += `<div class="opt-group">🛠 Свои формы</div>`;
                 items.customTemplates.forEach(t => {
-                    const val = "custom_" + t.title;
-                    const opt = document.createElement('div');
-                    opt.className = 'opt';
-                    opt.dataset.val = val;
-                    opt.textContent = "🛠 " + t.title;
-                    if (val === currentHotkeys[id]) selectedText = opt.textContent;
-                    itemsDiv.appendChild(opt);
+                    let val = "custom_" + t.title;
+                    optHtml += `<div class="opt" data-val="${val}">🛠 ${t.title}</div>`;
+                    if (val === currentHotkeys[id]) selectedSpan.textContent = "🛠 " + t.title;
                 });
             }
 
-            selectedSpan.textContent = selectedText;
+            itemsDiv.innerHTML = optHtml;
 
-            container.querySelector('.select-selected').addEventListener('click', (e) => {
+            // Логика кликов для списка
+            wrapper.querySelector('.select-selected').addEventListener('click', (e) => {
                 e.stopPropagation();
-                document.querySelectorAll('.custom-select').forEach(el => {
-                    if (el !== container) el.classList.remove('active');
-                });
-                container.classList.toggle('active');
+                document.querySelectorAll('.custom-select').forEach(el => { if (el !== wrapper) el.classList.remove('active'); });
+                wrapper.classList.toggle('active');
             });
 
             itemsDiv.querySelectorAll('.opt').forEach(opt => {
@@ -173,56 +90,88 @@ document.addEventListener('DOMContentLoaded', () => {
                     e.stopPropagation();
                     currentHotkeys[id] = opt.dataset.val;
                     selectedSpan.textContent = opt.textContent;
-                    container.classList.remove('active');
+                    wrapper.classList.remove('active');
                 });
             });
         });
 
-        // Закрытие списков при клике вне
+        let f6Wrapper = document.createElement('div');
+        f6Wrapper.className = 'row';
+        f6Wrapper.style.marginTop = '15px';
+        f6Wrapper.style.paddingTop = '15px';
+        f6Wrapper.style.borderTop = '1px dashed var(--border)';
+        f6Wrapper.innerHTML = `
+            <span style="font-size:13px; font-weight:600; color: var(--text-muted);">Клавиша F6</span>
+            <div style="width: 220px; background: rgba(0,0,0,0.5); border: 1px solid var(--border); color: #888; padding: 10px 12px; border-radius: 8px; font-size: 12px; cursor: not-allowed; display: flex; justify-content: space-between; align-items: center;">
+                <span>🔒 Главное меню</span>
+                <span style="font-size: 10px; opacity: 0.5;">(Вшито)</span>
+            </div>
+        `;
+        containerHTML.appendChild(f6Wrapper);
+
         document.addEventListener('click', () => {
             document.querySelectorAll('.custom-select').forEach(el => el.classList.remove('active'));
         });
 
-        textFields.forEach(id => { if (document.getElementById(id) && items[id] !== undefined) document.getElementById(id).value = items[id]; });
-        checkFields.forEach(id => { if (document.getElementById(id) && items[id] !== undefined) document.getElementById(id).checked = !!items[id]; });
         
+    }
+
+    // 4. ЗАГРУЗКА И ПРИВЯЗКА ДАННЫХ
+    chrome.storage.local.get(defaultSettings, function(items) {
+        buildHotkeysDropdowns(items);
+
+        // Текстовые поля
+        textFields.forEach(id => {
+            const el = document.getElementById(id);
+            if (el && items[id] !== undefined) el.value = items[id];
+        });
+
+        // Свитчи
+        checkFields.forEach(id => {
+            const el = document.getElementById(id);
+            if (el && items[id] !== undefined) el.checked = !!items[id];
+        });
+
+        // Ползунки
         rangeFields.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
                 el.value = items[id] !== undefined ? items[id] : el.min;
                 const valDisp = document.getElementById(id + 'Val');
                 if (valDisp) valDisp.textContent = el.value;
+                
+                // Живое обновление цифр при перетаскивании
+                el.addEventListener('input', e => {
+                    if (valDisp) valDisp.textContent = e.target.value;
+                });
             }
         });
 
+        // Цвета
         colorFields.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
                 el.value = items[id] || '#ffffff';
                 const disp = document.getElementById(id + 'Display');
                 if (disp) disp.textContent = el.value.toUpperCase();
-                if (id === 'themeColor') applyAccentColor(el.value);
+                
+                if (id === 'themeColor') document.documentElement.style.setProperty('--accent', el.value);
+
+                // Живое обновление текста цвета
+                el.addEventListener('input', e => {
+                    if (disp) disp.textContent = e.target.value.toUpperCase();
+                    if (id === 'themeColor') document.documentElement.style.setProperty('--accent', e.target.value);
+                });
             }
         });
+
+        // Обновление статы
+        document.getElementById('pendingCountDisp').textContent = items.pendingForms ? items.pendingForms.length : 0;
+        document.getElementById('totalCheckedDisp').textContent = items.totalChecked || 0;
     });
 
-    rangeFields.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.addEventListener('input', e => document.getElementById(id + 'Val').textContent = e.target.value);
-    });
-
-    colorFields.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-            el.addEventListener('input', e => {
-                const disp = document.getElementById(id + 'Display');
-                if (disp) disp.textContent = e.target.value.toUpperCase();
-                if (id === 'themeColor') applyAccentColor(e.target.value);
-            });
-        }
-    });
-
-    document.getElementById('save').addEventListener('click', e => {
+    // 5. ЛОГИКА СОХРАНЕНИЯ (Сбор всех данных из DOM)
+    document.getElementById('saveBtn').addEventListener('click', e => {
         const btn = e.target;
         const data = {};
         
@@ -230,37 +179,130 @@ document.addEventListener('DOMContentLoaded', () => {
 
         textFields.forEach(id => { 
             const el = document.getElementById(id);
-            if (el) {
-                if (id === 'discordWebhook') data[id] = el.value.trim(); 
-                else data[id] = sanitizeHTML(el.value);
-            }
+            if (el) data[id] = el.value.trim();
         });
-        checkFields.forEach(id => { if (document.getElementById(id)) data[id] = document.getElementById(id).checked; });
+
+        checkFields.forEach(id => { 
+            const el = document.getElementById(id);
+            if (el) data[id] = el.checked; 
+        });
+
         rangeFields.forEach(id => { 
             const el = document.getElementById(id);
             if (el) {
                 let val = parseFloat(el.value);
-                let min = parseFloat(el.min) || 0;
-                let max = parseFloat(el.max) || 300;
-                if (isNaN(val) || val < min) val = min;
-                if (val > max) val = max;
-                data[id] = val;
-            }
-        });
-        colorFields.forEach(id => { 
-            const el = document.getElementById(id);
-            if (el) {
-                let col = el.value.trim();
-                if (!/^#[0-9A-Fa-f]{6}$/.test(col)) col = "#ffffff";
-                data[id] = col;
+                data[id] = isNaN(val) ? 0 : val;
             }
         });
 
+        colorFields.forEach(id => { 
+            const el = document.getElementById(id);
+            if (el) data[id] = el.value.trim();
+        });
+
         chrome.storage.local.set(data, () => {
-            btn.textContent = 'Сохранено!';
+            btn.textContent = 'УСПЕШНО СОХРАНЕНО!';
             btn.classList.add('success');
-            chrome.tabs.query({url: "*://forum.arizona-rp.com/*"}, tabs => tabs.forEach(t => { try{chrome.tabs.reload(t.id)}catch(err){} }));
-            setTimeout(() => { btn.textContent = 'Сохранить'; btn.classList.remove('success'); }, 1500);
+            
+            setTimeout(() => { btn.textContent = 'СОХРАНИТЬ НАСТРОЙКИ'; btn.classList.remove('success'); }, 2000);
         });
     });
+
+    // 6. ИНДИВИДУАЛЬНЫЙ СБРОС ЦВЕТОВ
+    const colorResetLogic = [
+        { id: 'themeColor', btnId: 'reset_themeColor', def: defaultSettings.themeColor },
+        { id: 'themeTextColor', btnId: 'reset_themeTextColor', def: defaultSettings.themeTextColor },
+        { id: 'pColor', btnId: 'reset_pColor', def: defaultSettings.pColor }
+    ];
+
+    colorResetLogic.forEach(item => {
+        const btn = document.getElementById(item.btnId);
+        if (btn) {
+            btn.addEventListener('click', () => {
+                const el = document.getElementById(item.id);
+                const disp = document.getElementById(item.id + 'Display');
+                
+                if (el) el.value = item.def;
+                if (disp) disp.textContent = item.def.toUpperCase();
+                if (item.id === 'themeColor') document.documentElement.style.setProperty('--accent', item.def);
+                
+                let updateData = {}; updateData[item.id] = item.def;
+                chrome.storage.local.set(updateData, () => {});
+
+                btn.style.transform = 'rotate(-180deg)';
+                btn.style.color = '#e74c3c';
+                setTimeout(() => { btn.style.transform = 'none'; btn.style.color = ''; }, 400);
+            });
+        }
+    });
+
+    // 7. СБРОС ВСЕГО ВИЗУАЛА (Глобальная кнопка внизу)
+    const globalResetBtn = document.getElementById('globalResetBtn');
+    if (globalResetBtn) {
+        globalResetBtn.addEventListener('click', () => {
+            if (confirm("Сбросить все ползунки, эффекты и цвета до заводских?")) {
+                const visualDefaults = {
+                    themeColor: defaultSettings.themeColor, themeTextColor: defaultSettings.themeTextColor, pColor: defaultSettings.pColor,
+                    blurEnabled: defaultSettings.blurEnabled, blurIntensity: defaultSettings.blurIntensity, particlesEnabled: defaultSettings.particlesEnabled,
+                    customBgEnabled: defaultSettings.customBgEnabled, pFading: defaultSettings.pFading, pLines: defaultSettings.pLines,
+                    pCount: defaultSettings.pCount, pSpeed: defaultSettings.pSpeed, pSize: defaultSettings.pSize, threadCols: defaultSettings.threadCols, 
+                    oldStyleEnabled: defaultSettings.oldStyleEnabled, transparency: defaultSettings.transparency
+                };
+
+                chrome.storage.local.set(visualDefaults, () => {
+                    globalResetBtn.textContent = 'СБРОШЕНО!';
+                    chrome.tabs.query({url: "*://forum.arizona-rp.com/*"}, tabs => tabs.forEach(t => { try{chrome.tabs.reload(t.id)}catch(err){} }));
+                    setTimeout(() => window.location.reload(), 1000);
+                });
+            }
+        });
+    }
+
+    // 8. ЛОГИКА DISCORD WEBHOOK
+    const btnSend = document.getElementById('btnSendDiscord');
+    if (btnSend) {
+        btnSend.addEventListener('click', () => {
+            chrome.storage.local.get(['pendingForms', 'discordWebhook'], async function(data) {
+                if (!data.discordWebhook || !data.discordWebhook.startsWith("http")) return alert("Укажите ссылку на Discord Webhook во вкладке 'Основа'!");
+                if (!data.pendingForms || data.pendingForms.length === 0) return alert("Очередь форм пуста!");
+
+                btnSend.textContent = "ОТПРАВКА..."; btnSend.style.pointerEvents = 'none';
+                const chunks = data.pendingForms.join('\n').match(/[\s\S]{1,1900}(?=\n|$)/g) || [data.pendingForms.join('\n')];
+
+                try {
+                    for (let chunk of chunks) {
+                        await fetch(data.discordWebhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: "```\n" + chunk + "\n```" }) });
+                    }
+                    chrome.storage.local.set({ pendingForms: [] }, () => {
+                        btnSend.textContent = "ОТПРАВЛЕНО!"; btnSend.style.background = "#2ecc71";
+                        document.getElementById('pendingCountDisp').textContent = "0";
+                        setTimeout(() => { btnSend.textContent = "Отправить логи в Discord"; btnSend.style.background = ""; btnSend.style.pointerEvents = 'auto'; }, 2000);
+                    });
+                } catch (e) {
+                    alert("Ошибка отправки! Проверьте ссылку.");
+                    btnSend.textContent = "Отправить логи в Discord"; btnSend.style.pointerEvents = 'auto';
+                }
+            });
+        });
+    }
+
+    // 9. СКАЧАТЬ В TXT
+    const btnDownload = document.getElementById('btnDownloadLog');
+    if (btnDownload) {
+        btnDownload.addEventListener('click', () => {
+            chrome.storage.local.get(['pendingForms'], function(data) {
+                if (!data.pendingForms || data.pendingForms.length === 0) return alert("Сохранять нечего!");
+                
+                const blob = new Blob([data.pendingForms.join('\n')], { type: "text/plain;charset=utf-8" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url; a.download = `Arizona_Logs_${new Date().toLocaleDateString()}.txt`;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                
+                if(confirm("Очистить очередь в расширении?")) {
+                    chrome.storage.local.set({ pendingForms: [] }, () => { document.getElementById('pendingCountDisp').textContent = "0"; });
+                }
+            });
+        });
+    }
 });

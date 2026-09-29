@@ -175,9 +175,8 @@ form[action="/search/search"] .iconic:hover .iconic-label::before { border-color
 .v-scroll::-webkit-scrollbar-track { background: #1a1a20; border-radius: 4px; }
 .v-scroll::-webkit-scrollbar-thumb { background: var(--ah-accent); border-radius: 4px; }
 .v-scroll::-webkit-scrollbar-thumb:hover { background: #fff; }
-/* ========================================= */
-/* ОСТАЛЬНЫЕ ЭЛЕМЕНТЫ ФОРУМА                 */
-/* ========================================= */
+
+/* ОСТАЛЬНЫЕ ЭЛЕМЕНТЫ ФОРУМА */
 .inputGroup { display: flex !important; gap: 8px !important; }
 .inputGroup-splitter { display: none !important; }
 .menu-footer { background: transparent !important; border-top: 1px solid rgba(255, 255, 255, 0.05) !important; padding: 12px 16px !important; border-radius: 0 0 12px 12px !important; text-align: center !important; }
@@ -279,7 +278,7 @@ form[action="/search/search"] .iconic:hover .iconic-label::before { border-color
     visibility: hidden !important;
 }
 
-/* ПОЛЗУНОК ДЛЯ F4 (КОРОТКИЙ ОТВЕТ) */
+/* ПОЛЗУНОК ДЛЯ F4 */
 .ah-f4-toggle-wrap { 
     display: flex; 
     align-items: center; 

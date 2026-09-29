@@ -1,436 +1,272 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
+    <title>Arizona Helper Settings</title>
     <style>
         :root {
-            --bg: #0f0f13;
-            --panel: rgba(25, 25, 30, 0.9);
-            --accent: #3498db;
-            --text: #ffffff;
-            --text-muted: #8a8a9d;
-            --border: rgba(255, 255, 255, 0.1);
-            --input-bg: rgba(10, 10, 15, 0.6);
-            --btn-grad: linear-gradient(135deg, #2b5876 0%, #4e4376 100%);
-            --btn-grad-hover: linear-gradient(135deg, #346b8f 0%, #5c508a 100%);
-            --btn-success: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
-            --btn-error: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            --bg: #0b0b10; --surface: #15151e; --surface-hover: #1f1f2a;
+            --accent: #3498db; --text: #ffffff; --text-muted: #888899;
+            --border: rgba(255, 255, 255, 0.08);
+            --radius: 12px;
         }
-        body {
-            width: 360px;
-            margin: 0;
-            padding: 20px;
-            font-family: 'Inter', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            overflow-x: hidden;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 24px;
-        }
-        .header h3 {
-            margin: 0;
-            font-size: 20px;
-            font-weight: 800;
-            text-transform: uppercase;
-            text-shadow: 0 0 15px rgba(52, 152, 219, 0.4);
-            letter-spacing: 1px;
-        }
-        .header span {
-            color: var(--accent);
-        }
-        .form-group {
-            margin-bottom: 14px;
-        }
-        label {
-            display: block;
-            font-size: 10px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            margin-bottom: 6px;
-            font-weight: 700;
-        }
-        input[type="text"], select, textarea {
-            width: 100%;
-            box-sizing: border-box;
-            padding: 12px 14px;
-            background: var(--input-bg);
-            border: 1px solid var(--border);
-            color: var(--text);
-            border-radius: 10px;
-            font-size: 13px;
-            outline: none;
-            transition: all 0.3s;
-        }
-        input[type="text"]:focus, select:focus, textarea:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 12px rgba(52, 152, 219, 0.25);
-            background: rgba(15, 15, 20, 0.8);
-        }
-        input[type="range"] {
-            width: 100%;
-            accent-color: var(--accent);
-        }
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-        .toggle-container {
-            display: flex;
-            align-items: center;
-            margin: 14px 0;
-            background: var(--input-bg);
-            padding: 12px 14px;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-        }
-        .toggle-switch {
-            position: relative;
-            display: inline-block;
-            width: 40px;
-            height: 22px;
-            flex-shrink: 0;
-        }
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(255, 255, 255, 0.1);
-            transition: .3s;
-            border-radius: 22px;
-        }
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 16px;
-            width: 16px;
-            left: 3px;
-            bottom: 3px;
-            background-color: var(--text-muted);
-            transition: .3s;
-            border-radius: 50%;
-        }
-        input:checked + .slider {
-            background-color: rgba(52, 152, 219, 0.2);
-            border: 1px solid var(--accent);
-        }
-        input:checked + .slider:before {
-            transform: translateX(18px);
-            background-color: var(--accent);
-            box-shadow: 0 0 10px var(--accent);
-        }
-        .toggle-label {
-            margin-left: 12px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        .theme-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: var(--input-bg);
-            padding: 10px 14px;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            margin-bottom: 14px;
-        }
-        .color-picker-modern {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(0, 0, 0, 0.2);
-            padding: 6px 12px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-        }
-        .modern-color-input {
-            -webkit-appearance: none;
-            appearance: none;
-            border: none;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            cursor: pointer;
-            padding: 0;
-            background: none;
-        }
-        .modern-color-input::-webkit-color-swatch-wrapper {
-            padding: 0;
-        }
-        .modern-color-input::-webkit-color-swatch {
-            border: 2px solid rgba(255,255,255,0.2);
-            border-radius: 50%;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-        }
-        .reset-color-btn {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            font-size: 16px;
-            cursor: pointer;
-            padding: 0 4px;
-            transition: 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-left: 4px;
-        }
-        .reset-color-btn:hover {
-            color: var(--text);
-            transform: rotate(-45deg);
-        }
-        button#save {
-            width: 100%;
-            padding: 14px;
-            background: var(--btn-grad);
-            border: 1px solid var(--border);
-            color: white;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 800;
-            font-size: 14px;
-            text-transform: uppercase;
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            margin-top: 10px;
-        }
-        button#save:hover {
-            background: var(--btn-grad-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-        button#save:active {
-            transform: translateY(1px) scale(0.98);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-        button#save.success {
-            background: var(--btn-success) !important;
-            border-color: #2ecc71 !important;
-        }
-        button#save.error {
-            background: var(--btn-error) !important;
-            border-color: #e74c3c !important;
-            animation: softPulse 0.5s ease;
-        }
-        .hotkeys-grid {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            gap: 8px;
-            align-items: center;
-            margin-bottom: 14px;
-        }
-        .hotkeys-grid select {
-            padding: 8px;
-            font-size: 12px;
-        }
-        .tabs-container {
-            display: flex;
-            background: rgba(10, 10, 15, 0.8);
-            border: 1px solid var(--border);
-            padding: 5px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
-        }
-        .tab-btn {
-            flex: 1;
-            padding: 10px;
-            background: transparent;
-            color: var(--text-muted);
-            cursor: pointer;
-            text-align: center;
-            font-size: 13px;
-            font-weight: 600;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            border: none;
-            outline: none;
-        }
-        .tab-btn:hover:not(.active) {
-            color: var(--text);
-            background: rgba(255, 255, 255, 0.05);
-        }
-        .tab-btn.active {
-            background: var(--accent);
-            color: #fff;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-        }
-        .tab-content {
-            display: none;
-            animation: ahFadeIn 0.3s ease forwards;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        @keyframes ahFadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 3px; }
-        .val-display { color: var(--accent); font-weight: bold; font-size: 13px; float: right; }
+        * { box-sizing: border-box; }
+        body { margin: 0; width: 400px; max-height: 550px; font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text); overflow-y: auto; overflow-x: hidden; }
+        body::-webkit-scrollbar { width: 6px; }
+        body::-webkit-scrollbar-track { background: var(--bg); }
+        body::-webkit-scrollbar-thumb { background: var(--surface-hover); border-radius: 4px; }
+        
+        /* HEADER & TABS */
+        .header { position: sticky; top: 0; background: rgba(11, 11, 16, 0.8); backdrop-filter: blur(10px); z-index: 100; border-bottom: 1px solid var(--border); padding: 15px 20px 0; text-align: center; }
+        .logo { font-size: 20px; font-weight: 900; letter-spacing: 1px; margin-bottom: 15px; text-transform: uppercase; }
+        .logo span { color: var(--accent); text-shadow: 0 0 10px var(--accent); }
+        .tabs { display: flex; gap: 5px; background: rgba(255,255,255,0.05); padding: 4px; border-radius: 10px; margin-bottom: 15px; }
+        .tab-btn { flex: 1; background: transparent; border: none; color: var(--text-muted); font-weight: 600; font-size: 12px; padding: 8px 0; border-radius: 8px; cursor: pointer; transition: 0.3s; text-transform: uppercase; }
+        .tab-btn:hover { color: var(--text); }
+        .tab-btn.active { background: var(--accent); color: #fff; box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4); }
 
-        .custom-select { position: relative; width: 100%; user-select: none; margin-bottom: 8px; }
-        .select-selected { 
-            background: var(--input-bg); border: 1px solid var(--border); color: var(--text); 
-            padding: 10px 14px; border-radius: 10px; font-size: 13px; cursor: pointer; 
-            display: flex; justify-content: space-between; align-items: center; transition: all 0.3s; 
-        }
-        .select-selected:hover, .custom-select.active .select-selected { 
-            border-color: var(--accent); box-shadow: 0 0 12px rgba(52, 152, 219, 0.25); background: rgba(15, 15, 20, 0.8);
-        }
-        .select-items { 
-            position: absolute; background: rgba(20, 20, 25, 0.95); backdrop-filter: blur(10px); 
-            top: 100%; left: 0; right: 0; z-index: 99; border: 1px solid var(--border); 
-            border-radius: 10px; margin-top: 5px; max-height: 220px; overflow-y: auto; 
-            display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.8); 
-        }
-        .custom-select.active .select-items { display: block; animation: ahFadeIn 0.2s ease forwards; }
-        .select-items div.opt { 
-            padding: 10px 14px; cursor: pointer; font-size: 12px; transition: background 0.2s, color 0.2s; 
-            border-bottom: 1px solid rgba(255,255,255,0.05); color: #fff;
-        }
-        .select-items div.opt:hover { background: var(--btn-grad-hover); color: var(--accent); padding-left: 18px; }
-        .select-items div.opt-group { 
-            padding: 8px 14px; font-size: 10px; font-weight: 800; color: var(--accent); 
-            text-transform: uppercase; background: rgba(0,0,0,0.5); 
-        }
+        /* CONTENT */
+        .tab-content { display: none; padding: 15px 20px; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
+        /* GROUPS & INPUTS */
+        .group { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 15px; margin-bottom: 15px; transition: 0.3s; }
+        .group:hover { border-color: rgba(255,255,255,0.15); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .row:last-child { margin-bottom: 0; }
+        .label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .input-text { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: #fff; padding: 10px 12px; border-radius: 8px; font-size: 13px; outline: none; transition: 0.3s; margin-top: 8px; }
+        .input-text:focus { border-color: var(--accent); box-shadow: 0 0 10px rgba(52, 152, 219, 0.2); }
+
+        /* SWITCHES */
+        .switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .4s; border-radius: 22px; border: 1px solid var(--border); }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: #888; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: rgba(52, 152, 219, 0.2); border-color: var(--accent); }
+        input:checked + .slider:before { transform: translateX(18px); background-color: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+        /* RANGE SLIDERS */
+        .range-wrap { margin-top: 12px; }
+        .range-info { display: flex; justify-content: space-between; font-size: 11px; color: var(--accent); font-weight: bold; margin-bottom: 6px; }
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 14px; width: 14px; border-radius: 50%; background: var(--accent); cursor: pointer; margin-top: -5px; box-shadow: 0 0 10px var(--accent); transition: 0.2s; }
+        input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+        /* COLORS */
+        .color-row { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); margin-top: 8px; }
+        .color-preview-wrap { display: flex; align-items: center; gap: 10px; }
+        .color-picker { -webkit-appearance: none; border: none; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; padding: 0; background: transparent; overflow: hidden; }
+        .color-picker::-webkit-color-swatch-wrapper { padding: 0; }
+        .color-picker::-webkit-color-swatch { border: 2px solid rgba(255,255,255,0.2); border-radius: 50%; }
+        .color-hex { font-size: 12px; font-weight: bold; color: #fff; font-family: monospace; }
+        .reset-color { background: transparent; border: none; color: var(--text-muted); cursor: pointer; transition: 0.3s; font-size: 14px; padding: 0; }
+        .reset-color:hover { color: #e74c3c; transform: rotate(-180deg); }
+
+        /* DROPDOWNS */
+        .custom-select { position: relative; margin-top: 8px; }
+        .select-selected { background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: #fff; padding: 10px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; display: flex; justify-content: space-between; transition: 0.3s; }
+        .select-selected:hover { border-color: rgba(255,255,255,0.2); }
+        .select-items { display: none; position: absolute; background: var(--surface-hover); border: 1px solid var(--border); border-radius: 8px; top: 110%; left: 0; right: 0; z-index: 99; max-height: 200px; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .custom-select.active .select-items { display: block; }
+        .opt-group { padding: 8px 12px; font-size: 10px; color: var(--accent); font-weight: 800; text-transform: uppercase; background: rgba(0,0,0,0.3); }
+        .opt { padding: 8px 12px; font-size: 12px; color: #fff; cursor: pointer; transition: 0.2s; }
+        .opt:hover { background: rgba(255,255,255,0.05); color: var(--accent); padding-left: 16px; }
+
+        /* BUTTONS */
+        .footer { padding: 15px 20px 20px; position: sticky; bottom: 0; background: rgba(11, 11, 16, 0.9); backdrop-filter: blur(10px); border-top: 1px solid var(--border); }
+        .btn-save { width: 100%; background: var(--accent); color: #fff; border: none; padding: 14px; border-radius: var(--radius); font-size: 14px; font-weight: 800; text-transform: uppercase; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3); }
+        .btn-save:hover { filter: brightness(1.15); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(52, 152, 219, 0.5); }
+        .btn-save.success { background: #2ecc71; box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3); }
+        
+        .action-btn { width: 100%; background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border); padding: 12px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-bottom: 10px; text-transform: uppercase; }
+        .action-btn:hover { background: rgba(255,255,255,0.1); border-color: var(--accent); color: var(--accent); }
     </style>
 </head>
 <body>
+
     <div class="header">
-        <h3>Arizona <span>Helper</span></h3>
-    </div>
-    
-    <div class="tabs-container">
-        <div class="tab-btn active" data-tab="main">Основа</div>
-        <div class="tab-btn" data-tab="hotkeys">Биндер</div>
-        <div class="tab-btn" data-tab="visuals">Визуал</div>
-    </div>
-    
-    <div id="tab-main" class="tab-content active">
-        <div class="form-group">
-            <label>Никнейм</label>
-            <input type="text" id="nickname" placeholder="Aleksandr Nerabin">
-        </div>
-        <div class="grid-2">
-            <div class="form-group">
-                <label>Организация</label>
-                <input type="text" id="organization" placeholder="Admin">
-            </div>
-            <div class="form-group">
-                <label>Подпись</label>
-                <input type="text" id="signature" placeholder="byNerabin">
-            </div>
-        </div>
-        <div class="form-group">
-            <label>Discord Webhook</label>
-            <input type="text" id="discordWebhook" placeholder="https://discord.com/api/webhooks/...">
+        <div class="logo">Arizona <span>Helper</span></div>
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="main">Основа</button>
+            <button class="tab-btn" data-tab="binds">Биндер</button>
+            <button class="tab-btn" data-tab="visual">Визуал</button>
+            <button class="tab-btn" data-tab="stats">Стата</button>
         </div>
     </div>
 
-    <div id="tab-hotkeys" class="tab-content">
-        <div class="hotkeys-grid">
-            <label style="margin:0">F1</label><div class="custom-select" id="custom-hotkeyF1"><div class="select-selected"><span>-- Ничего --</span><span>▼</span></div><div class="select-items"></div></div>
-            <label style="margin:0">F2</label><div class="custom-select" id="custom-hotkeyF2"><div class="select-selected"><span>-- Ничего --</span><span>▼</span></div><div class="select-items"></div></div>
-            <label style="margin:0">F3</label><div class="custom-select" id="custom-hotkeyF3"><div class="select-selected"><span>-- Ничего --</span><span>▼</span></div><div class="select-items"></div></div>
-            <label style="margin:0">F4</label><div class="custom-select" id="custom-hotkeyF4"><div class="select-selected"><span>-- Ничего --</span><span>▼</span></div><div class="select-items"></div></div>
-            <label style="margin:0">F5</label><div class="custom-select" id="custom-hotkeyF5"><div class="select-selected"><span>-- Ничего --</span><span>▼</span></div><div class="select-items"></div></div>
-            <label style="margin:0; color: var(--text-muted);">F6</label>
-            <div class="custom-select" style="pointer-events: none; opacity: 0.6;" title="Системная кнопка (нельзя изменить)">
-                <div class="select-selected" style="background: rgba(0, 0, 0, 0.2); border: 1px dashed var(--border);">
-                    <span>Меню шаблонов</span>
-                    <span>🔒</span>
+    <!-- ОСНОВА -->
+    <div id="tab-main" class="tab-content active">
+        <div class="group">
+            <div class="label">Ваш Никнейм</div>
+            <input type="text" id="nickname" class="input-text" placeholder="Nick_Name">
+        </div>
+        <div class="group">
+            <div class="label">Организация</div>
+            <input type="text" id="organization" class="input-text" placeholder="LSPD">
+        </div>
+        <div class="group">
+            <div class="label">Подпись на форуме</div>
+            <input type="text" id="signature" class="input-text" placeholder="С уважением...">
+        </div>
+        <div class="group">
+            <div class="label">Discord Webhook (Для форм)</div>
+            <input type="text" id="discordWebhook" class="input-text" placeholder="https://discord.com/api/webhooks/...">
+        </div>
+        <div class="group">
+            <div class="row">
+                <span class="label">Безопасность</span>
+            </div>
+            <div class="row">
+                <span style="font-size:13px; font-weight:600;">Подтверждение при удалении оффтопа</span>
+                <label class="switch"><input type="checkbox" id="confirmOfftopDelete"><span class="slider"></span></label>
+            </div>
+        </div>
+    </div>
+
+    <!-- БИНДЕР -->
+    <div id="tab-binds" class="tab-content">
+        <div class="group">
+            <div class="label">Горячие клавиши (Формы)</div>
+            <div id="hotkeys-container">
+                <!-- Генерируется через JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ВИЗУАЛ -->
+    <div id="tab-visual" class="tab-content">
+        <div class="group">
+            <div class="label">Цветовая схема</div>
+            
+            <div class="color-row">
+                <span style="font-size: 12px; font-weight: bold;">АКЦЕНТ ФОРУМА</span>
+                <div class="color-preview-wrap">
+                    <input type="color" id="themeColor" class="color-picker">
+                    <span id="themeColorDisplay" class="color-hex">#3498DB</span>
+                    <button class="reset-color" id="reset_themeColor" title="Сбросить">↻</button>
+                </div>
+            </div>
+            
+            <div class="color-row">
+                <span style="font-size: 12px; font-weight: bold;">ТЕКСТ ТЕМ</span>
+                <div class="color-preview-wrap">
+                    <input type="color" id="themeTextColor" class="color-picker">
+                    <span id="themeTextColorDisplay" class="color-hex">#FFFFFF</span>
+                    <button class="reset-color" id="reset_themeTextColor" title="Сбросить">↻</button>
+                </div>
+            </div>
+
+            <div class="color-row">
+                <span style="font-size: 12px; font-weight: bold;">ЦВЕТ ЧАСТИЦ</span>
+                <div class="color-preview-wrap">
+                    <input type="color" id="pColor" class="color-picker">
+                    <span id="pColorDisplay" class="color-hex">#3498DB</span>
+                    <button class="reset-color" id="reset_pColor" title="Сбросить">↻</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="group">
+            <div class="row">
+                <span class="label">Стиль форума (XenForo)</span>
+            </div>
+            <div class="row">
+                <span style="font-size:13px; font-weight:600;">Старый дизайн</span>
+                <label class="switch"><input type="checkbox" id="oldStyleEnabled"><span class="slider"></span></label>
+            </div>
+            <div class="row">
+                <span style="font-size:13px; font-weight:600;">Колонок в списке тем: <span id="threadColsVal" style="color:var(--accent)">2</span></span>
+                <input type="range" id="threadCols" min="1" max="4" step="1" style="width: 100px;">
+            </div>
+            <div class="range-wrap">
+                <div class="range-info"><span>ПРОЗРАЧНОСТЬ КАРТОЧЕК (%)</span><span id="transparencyVal">15</span></div>
+                <input type="range" id="transparency" min="0" max="90" step="1">
+            </div>
+        </div>
+
+        <div class="group">
+            <!-- Просто заголовок блока без переключателя -->
+            <div class="row">
+                <span class="label">Анимированный фон</span>
+            </div>
+            
+            <div class="row">
+                <span style="font-size:13px; font-weight:600;">Светящиеся сферы</span>
+                <label class="switch"><input type="checkbox" id="customBgEnabled"><span class="slider"></span></label>
+            </div>
+            <div class="row">
+                <span style="font-size:13px; font-weight:600;">Мерцание частиц</span>
+                <label class="switch"><input type="checkbox" id="pFading"><span class="slider"></span></label>
+            </div>
+            
+            <!-- Переключатель частиц теперь отдельным пунктом -->
+            <div class="row">
+                <span style="font-size:13px; font-weight:600;">Отображать частицы</span>
+                <label class="switch"><input type="checkbox" id="particlesEnabled"><span class="slider"></span></label>
+            </div>
+            
+            <div class="row">
+                <span style="font-size:13px; font-weight:600;">Соединительные линии</span>
+                <label class="switch"><input type="checkbox" id="pLines"><span class="slider"></span></label>
+            </div>
+
+            <div class="range-wrap">
+                <div class="range-info"><span>КОЛИЧЕСТВО</span><span id="pCountVal">70</span></div>
+                <input type="range" id="pCount" min="10" max="150" step="5">
+            </div>
+            <div class="range-wrap">
+                <div class="range-info"><span>СКОРОСТЬ ПОЛЕТА</span><span id="pSpeedVal">0.5</span></div>
+                <input type="range" id="pSpeed" min="0.1" max="3.0" step="0.1">
+            </div>
+            <div class="range-wrap">
+                <div class="range-info"><span>РАЗМЕР</span><span id="pSizeVal">3</span></div>
+                <input type="range" id="pSize" min="1" max="10" step="0.5">
+            </div>
+        </div>
+
+        <div class="group">
+            <div class="row">
+                <span class="label">Блюр при скролле</span>
+                <label class="switch"><input type="checkbox" id="blurEnabled"><span class="slider"></span></label>
+            </div>
+            <div class="range-wrap">
+                <div class="range-info"><span>СИЛА РАЗМЫТИЯ</span><span id="blurIntensityVal">15</span></div>
+                <input type="range" id="blurIntensity" min="5" max="30" step="1">
+            </div>
+        </div>
+        
+        <button id="globalResetBtn" class="action-btn" style="border-color: #e74c3c; color: #e74c3c;">Сбросить весь визуал</button>
+    </div>
+
+    <!-- СТАТИСТИКА -->
+    <div id="tab-stats" class="tab-content">
+        <div class="group" style="text-align: center;">
+            <div class="label" style="margin-bottom: 15px;">Очередь логов в Discord</div>
+            <div style="font-size: 36px; font-weight: 900; margin-bottom: 5px; color: var(--accent);" id="pendingCountDisp">0</div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px;">Ожидают отправки</div>
+            
+            <button id="btnSendDiscord" class="action-btn" style="background: rgba(52, 152, 219, 0.1); border-color: var(--accent); color: var(--accent);">Отправить логи в Discord</button>
+            <button id="btnDownloadLog" class="action-btn">Скачать в .txt</button>
+        </div>
+        <div class="group" style="text-align: center;">
+            <div class="label" style="margin-bottom: 10px;">Статистика работы</div>
+            <div style="display: flex; justify-content: space-around; align-items: center; margin-top: 15px;">
+                <div>
+                    <div style="font-size: 24px; font-weight: 800;" id="totalCheckedDisp">0</div>
+                    <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">Проверено</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="tab-visuals" class="tab-content">
-        <div class="theme-row">
-            <label style="margin:0;color:#fff;font-size:12px;">Акцент</label>
-            <div class="color-picker-modern">
-                <input type="color" id="themeColor" class="modern-color-input">
-                <span class="color-hex-display" id="themeColorDisplay"></span>
-                <button id="resetColor" class="reset-color-btn" title="Сбросить">↺</button>
-            </div>
-        </div>
-        <div class="theme-row">
-            <label style="margin:0;color:#fff;font-size:12px;">Текст форума</label>
-            <div class="color-picker-modern">
-                <input type="color" id="themeTextColor" class="modern-color-input">
-                <span class="color-hex-display" id="themeTextColorDisplay"></span>
-                <button id="resetTextColor" class="reset-color-btn" title="Сбросить">↺</button>
-            </div>
-        </div>
-        <div class="theme-row">
-            <label style="margin:0;color:#fff;font-size:12px;">Цвет частиц</label>
-            <div class="color-picker-modern">
-                <input type="color" id="pColor" class="modern-color-input">
-                <span class="color-hex-display" id="pColorDisplay"></span>
-                <button id="resetPColor" class="reset-color-btn" title="Сбросить">↺</button>
-            </div>
-        </div>
-
-        <label class="toggle-container" for="blurEnabled">
-            <div class="toggle-switch"><input type="checkbox" id="blurEnabled"><span class="slider"></span></div>
-            <span class="toggle-label">Размытие в движении</span>
-        </label>
-        <div class="form-group">
-            <label>Сила размытия: <span class="val-display" id="blurIntensityVal"></span></label>
-            <input type="range" id="blurIntensity" min="5" max="40" step="1">
-        </div>
-
-        <label class="toggle-container" for="oldStyleEnabled">
-            <div class="toggle-switch"><input type="checkbox" id="oldStyleEnabled"><span class="slider"></span></div>
-            <span class="toggle-label">Старый стиль</span>
-        </label>
-        <label class="toggle-container" for="customBgEnabled">
-            <div class="toggle-switch"><input type="checkbox" id="customBgEnabled"><span class="slider"></span></div>
-            <span class="toggle-label">Неоновые огни</span>
-        </label>
-        <label class="toggle-container" for="particlesEnabled">
-            <div class="toggle-switch"><input type="checkbox" id="particlesEnabled"><span class="slider"></span></div>
-            <span class="toggle-label">Частицы</span>
-        </label>
-        </label>
-
-        <div class="grid-2">
-            <div class="form-group">
-                <label>Прозрачность (%): <span class="val-display" id="transparencyVal"></span></label>
-                <input type="range" id="transparency" min="0" max="100" step="5">
-            </div>
-            <div class="form-group">
-                <label>Колонок тем (шт): <span class="val-display" id="threadColsVal"></span></label>
-                <input type="range" id="threadCols" min="2" max="4" step="1">
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label>Размер частиц: <span class="val-display" id="pSizeVal"></span></label>
-            <input type="range" id="pSize" min="1" max="30" step="0.5">
-        </div>
-        <div class="form-group">
-            <label>Количество частиц: <span class="val-display" id="pCountVal"></span></label>
-            <input type="range" id="pCount" min="5" max="150">
-        </div>
-        <!-- Вырезан селект поведения частиц -->
+    <div class="footer">
+        <button id="saveBtn" class="btn-save">Сохранить настройки</button>
     </div>
 
-    <button id="save">Сохранить</button>
     <script src="popup.js"></script>
 </body>
 </html>

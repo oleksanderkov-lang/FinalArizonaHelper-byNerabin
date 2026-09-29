@@ -1,6 +1,4 @@
-/* ========================================= */
-/* ПРИНУДИТЕЛЬНАЯ ТЕМНАЯ ТЕМА ДЛЯ ВСЕГО      */
-/* ========================================= */
+/* ПРИНУДИТЕЛЬНАЯ ТЕМНАЯ ТЕМА ДЛЯ ВСЕГО */
 :root, 
 html[data-style-variation="alternate"], 
 html[data-style-variation="default"], 
@@ -12,9 +10,7 @@ html[data-color-scheme="dark"] {
     --ah-text-default: #ffffff !important;
 }
 
-/* ========================================= */
-/* СЕТКА И ЗАКРЕПЫ (ТЕМЫ)                    */
-/* ========================================= */
+/* СЕТКА И ЗАКРЕПЫ */
 .structItemContainer-group--sticky { padding-bottom: 36px !important; margin-bottom: 36px !important; position: relative; }
 .structItemContainer-group--sticky::after {
     content: ""; position: absolute; bottom: 8px; left: 5%; width: 90%; height: 2px;
@@ -32,12 +28,10 @@ html[data-color-scheme="dark"] {
     transition: all 0.3s ease !important; position: relative !important; box-sizing: border-box !important; height: 100% !important; 
 }
 
+/* Стандартное выделение */
 .structItem.structItem--thread:hover, .node-body:hover {
-    transform: translateY(-4px) !important; 
-    box-shadow: 0 15px 35px var(--ah-shadow), inset 0 2px 20px var(--ah-border-fallback) !important;
-    border-color: var(--ah-accent) !important; 
-    background: linear-gradient(135deg, var(--ah-surface) 0%, var(--ah-glow) 100%) !important;
-    z-index: 10 !important;
+    background: rgba(255, 255, 255, 0.03) !important; 
+    border-color: var(--ah-border-h) !important;
 }
 
 .structItem-cell, .structItem-cell--main { display: block !important; position: static !important; padding: 0 !important; border: none !important; width: 100% !important; box-sizing: border-box !important; }
@@ -77,13 +71,14 @@ html[data-color-scheme="dark"] {
 .structItem-cell--latest > a, .structItem-cell--latest .structItem-minor { text-align: right !important; }
 
 .structItem-parts .username, .structItem-cell--latest .username { display: inline !important; font-size: 13px !important; font-weight: 700 !important; line-height: 18px !important; }
-.structItem-parts .username:not([class*="username--style"]), .structItem-cell--latest .username:not([class*="username--style"]) { color: var(--ah-text, var(--ah-text-default)) !important; }
+.structItem-parts .username:not([class*="username--style"]), .structItem-cell--latest .username:not([class*="username--style"]) { transition: color 0.3s ease !important; }
 
 .structItem-parts .structItem-startDate, .structItem-parts .structItem-startDate time, .structItem-cell--latest > a, .structItem-cell--latest > a time { font-size: 11px !important; color: var(--ah-text-m) !important; font-weight: 400 !important; text-decoration: none !important; line-height: 18px !important; }
 .structItem-parts .structItem-startDate { font-size: 0 !important; } 
 
 .message { transition: all 0.3s ease !important; border-radius: 8px; background: var(--ah-surface) !important; border: 1px solid var(--ah-border, var(--ah-border-fallback)) !important; }
-.message:hover { transform: translateY(-2px) scale(1.005); border-color: var(--ah-border-h) !important; box-shadow: 0 10px 25px var(--ah-shadow) !important; }
+/* Убрано всплывание сообщений */
+.message:hover { border-color: var(--ah-border-h) !important; }
 .block-minorHeader.block-stickyHeader, .block-minorHeader { display: none !important; }
 
 /* РАЗДЕЛЫ ФОРУМА (NODES) */
@@ -148,7 +143,8 @@ html[data-color-scheme="dark"] {
 .p-body-main, .p-body-content, .p-body-pageContent, .p-body-inner, .p-body-header, .block, .block-container { background: transparent !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; border: none !important; box-shadow: none !important; }
 .p-body-pageContent > .block > .block-container { padding: 0 !important; }
 .p-body-header { margin-bottom: 0 !important; padding-bottom: 0 !important; border-bottom: none !important; }
-.p-body-main, .p-body-content, .p-body-pageContent, .p-body-inner, .p-body-header, .p-pageWrapper { background: transparent !important; background-color: transparent !important; z-index: 1; position: relative; }
+.p-body-main, .p-body-content, .p-body-pageContent, .p-body-inner, .p-body-header { background: transparent !important; z-index: 1; position: relative; }
+.p-pageWrapper { z-index: 1; position: relative; }
 
 .p-body-pageContent > .block, .p-body-pageContent > .block > .block-container, .block-container-nodes, .block-container:has(> .block-body > .structItemContainer), .block-container:has(> .block-body > .node) { background: transparent !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; border: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; }
 .block-body { background: transparent !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; border: none !important; box-shadow: none !important; }

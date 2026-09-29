@@ -117,6 +117,7 @@ function enhanceXenForoMenus(targetNode) {
 function initSmartNav() {
     const isThreadList = document.querySelector('.structItemContainer-group');
 
+    // 1. УМНЫЙ ФИЛЬТР ТЕМ
     if (isThreadList && !document.getElementById('ah-live-filter')) {
         const filterStyle = document.createElement('style');
         filterStyle.textContent = `
@@ -144,22 +145,69 @@ function initSmartNav() {
         let cFilter = 'all';
 
         const threads = document.querySelectorAll('.structItem--thread');
+        
         threads.forEach(item => {
             item._ahText = item.innerText.toLowerCase();
             item._ahLabels = Array.from(item.querySelectorAll('.label')).map(l => l.innerText.toLowerCase());
+            
+            // Точный парсинг даты из первого тега time (дата создания)
+            item._ahCreationTime = Date.now() / 1000; 
+            const timeEls = item.querySelectorAll('time');
+            if (timeEls.length > 0) {
+                const firstTime = timeEls[0]; 
+                if (firstTime.hasAttribute('data-timestamp')) {
+                    item._ahCreationTime = parseInt(firstTime.getAttribute('data-timestamp'), 10);
+                }
+            }
         });
 
         function apply() {
             const q = searchInp.value.toLowerCase();
+            const currentSec = Date.now() / 1000;
+            const ONE_MONTH_SEC = 30 * 24 * 60 * 60; // 30 дней
+
             threads.forEach(item => {
                 const mt = item._ahText.includes(q);
                 let ml = true;
-                if (cFilter === 'none') ml = item._ahLabels.length === 0;
-                else if (cFilter === 'На рассмотрении') ml = item._ahLabels.some(l => l.includes('на рассмотрении') || l.includes('на рассмотрение га'));
-                else if (cFilter !== 'all') ml = item._ahLabels.some(l => l.includes(cFilter.toLowerCase()));
+                
+                if (cFilter === 'none') {
+                    // Ищем админские теги
+                    const stopTags = ['рассмотрен', 'отказан', 'на рассмотрении', 'ожидает', 'закрыто', 'решено', 'информация', 'важно'];
+                    const hasStopTag = item._ahLabels.some(label => stopTags.some(status => label.includes(status)));
+                    
+                    if (hasStopTag) {
+                        ml = false; // Уже проверено админами
+                    } else {
+                        // Проверяем ТОЛЬКО возраст! Если теме больше 30 дней - это старый закреп с правилами
+                        if ((currentSec - item._ahCreationTime) > ONE_MONTH_SEC) {
+                            ml = false;
+                        } else {
+                            ml = true; // Теме меньше 30 дней и нет админ-тега - показываем 100%!
+                        }
+                    }
+                }
+                else if (cFilter === 'На рассмотрении') {
+                    ml = item._ahLabels.some(l => l.includes('на рассмотрении') || l.includes('на рассмотрение га'));
+                } 
+                else if (cFilter !== 'all') {
+                    ml = item._ahLabels.some(l => l.includes(cFilter.toLowerCase()));
+                }
 
-                item.style.setProperty('display', (mt && ml) ? 'flex' : 'none', 'important');
+                if (mt && ml) {
+                    item.style.display = ''; 
+                } else {
+                    item.style.setProperty('display', 'none', 'important');
+                }
             });
+
+            const sep = document.querySelector('.ah-sticky-separator');
+            if (sep) {
+                if (q !== '' || cFilter !== 'all') {
+                    sep.style.display = 'none';
+                } else {
+                    sep.style.display = '';
+                }
+            }
         }
 
         searchInp.addEventListener('input', apply);
@@ -172,6 +220,43 @@ function initSmartNav() {
             });
         });
     }
+
+    // 2. РАЗДЕЛИТЕЛЬ ЗАКРЕПЛЕННЫХ ТЕМ
+    if (isThreadList && !document.querySelector('.ah-sticky-separator')) {
+        const threadList = document.querySelectorAll('.structItem--thread');
+        let lastSticky = null;
+        let firstNormal = null;
+
+        for (let i = 0; i < threadList.length; i++) {
+            const thread = threadList[i];
+            const isSticky = thread.querySelector('.structItem-status--sticky, .fa-thumbtack, [title*="Закреплено"]');
+            
+            if (isSticky) {
+                lastSticky = thread;
+            } else if (lastSticky && !isSticky) {
+                firstNormal = thread;
+                break;
+            }
+        }
+
+        if (lastSticky && firstNormal) {
+            const sep = document.createElement('div');
+            sep.className = 'ah-sticky-separator';
+            
+            // МАГИЯ СЕТКИ: Заставляем разделитель игнорировать колонки и растянуться на 100% ширины
+            sep.style.gridColumn = '1 / -1';
+            sep.style.width = '100%';
+            
+            sep.innerHTML = `
+                <div style="display: flex; align-items: center; text-align: center; margin: 25px 0 15px 0;">
+                    <div style="flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15));"></div>
+                    <div style="padding: 0 15px; color: var(--ah-accent, #3498db); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.9;">Обычные темы</div>
+                    <div style="flex: 1; height: 1px; background: linear-gradient(270deg, transparent, rgba(255,255,255,0.15));"></div>
+                </div>
+            `;
+            firstNormal.parentNode.insertBefore(sep, firstNormal);
+        }
+    }
 }
 
 function executeTemplate(template) {
@@ -183,7 +268,7 @@ function executeTemplate(template) {
     };
     
     if (template.needsVerdictForm) { 
-        showVerdictPrompt(function(punishmentsArray, punishmentsHtml, finalRuleText, logLine) {
+        showVerdictPrompt(function(punishmentsArray, punishmentsHtml, finalRuleText, logLine, selectedPrefix) {
             const shortToggle = document.getElementById('ah-short-reply');
             const isShort = shortToggle ? shortToggle.checked : false;
 
@@ -203,10 +288,179 @@ function executeTemplate(template) {
             else {
                 processTemplate(punishmentsHtml, finalRuleText, logLine, isShort);
             }
+
+            if (selectedPrefix && selectedPrefix !== '0') {
+                window.AH_changeThreadState(selectedPrefix);
+            }
         }); 
     } 
-    else if (template.needsRefuseForm) { showRefusePrompt(function(r, rt) { processTemplate(r, rt); }); } 
-    else if (template.needsOpraForm) { showOpraPrompt(extractTargetNickname(), function(tn) { processTemplate(tn); }); } 
+    else if (template.needsRefuseForm) { 
+        showRefusePrompt(function(r, rt, selectedPrefix) { 
+            processTemplate(r, rt); 
+            if (selectedPrefix && selectedPrefix !== '0') {
+                window.AH_changeThreadState(selectedPrefix);
+            }
+        }); 
+    }
+    else if (template.needsOpraForm) { 
+        showOpraPrompt(extractTargetNickname(), function(tn, opraType) { 
+            let finalHtml = typeof template.text === 'function' ? template.text(tn, getUTC3Time(), getLawsuitNumber(), getMonday()) : template.text;
+
+            if (opraType === 'full') {
+                finalHtml = finalHtml.replace(/опровержение/i, 'полное опровержение').replace(/опру/i, 'полную опру');
+            } else if (opraType === 'moment') {
+                finalHtml = finalHtml.replace(/опровержение/i, 'опровержение момента').replace(/опру/i, 'опру момента');
+            }
+            
+            insertHtmlIntoEditor(finalHtml);
+            const closeOverlay = document.querySelector('.overlay-close');
+            if (closeOverlay) closeOverlay.click();
+
+            if (window.AH_changeThreadState) {
+                window.AH_changeThreadState('15');
+            }
+        }); 
+    }
     else if (template.needsSecondDate) { showCustomDatePrompt(function(sd) { processTemplate(sd); }); } 
     else { processTemplate(); }
+}
+
+window.AH_changeThreadState = async function(prefixId) {
+    try {
+        const threadMatch = window.location.href.match(/threads\/(?:.*?\.)?(\d+)/i);
+        if (!threadMatch) return;
+        const threadId = threadMatch[1];
+        const editUrl = `/threads/${threadId}/edit`;
+
+        const response = await fetch(editUrl);
+        if (!response.ok) return;
+        const html = await response.text();
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const token = doc.querySelector('input[name="_xfToken"]');
+        if (!token) return;
+
+        const formData = new URLSearchParams();
+        formData.append('_xfToken', token.value);
+        formData.append('title', doc.querySelector('input[name="title"]').value);
+        formData.append('prefix_id', prefixId);
+        
+        // Обязательные служебные маркеры XenForo (чтобы чекбоксы сработали)
+        formData.append('_xfSet[discussion_open]', '1');
+        formData.append('_xfSet[sticky]', '1');
+
+        if (prefixId === '15') { 
+            // 15 - На рассмотрении (оставить открытой и закрепить)
+            formData.append('discussion_open', '1');
+            formData.append('sticky', '1');
+        } else if (prefixId === '17' || prefixId === '18') { 
+            // 17 / 18 - Рассмотрено / Отказано 
+            // Не передаем ключи discussion_open и sticky -> XenForo закрывает и открепляет тему
+        } else {
+            // По дефолту оставляем открытой
+            formData.append('discussion_open', '1');
+        }
+        
+        fetch(editUrl, { 
+            method: 'POST', 
+            body: formData, 
+            headers: { 
+                'Accept': 'application/json, text/javascript, */*; q=0.01', 
+                'X-Requested-With': 'XMLHttpRequest' 
+            } 
+        });
+    } catch (e) {
+        console.error("Arizona Helper: Ошибка фонового изменения статуса темы", e);
+    }
+};
+
+// --- УДАЛЕНИЕ ОФФТОПА В ОДИН КЛИК ---
+function addOfftopButtons(targetNode) {
+    targetNode.querySelectorAll('.message').forEach(function(message) {
+        // Защита от дублирования кнопок
+        if (message.dataset.ahOfftopInit) return;
+        message.dataset.ahOfftopInit = 'true';
+
+        const warnBtn = message.querySelector('a.actionBar-action--warn');
+        const deleteBtn = message.querySelector('a.actionBar-action--delete');
+        
+        // Достаем ID сообщения из соседних кнопок
+        let postId = null;
+        if (deleteBtn && deleteBtn.href) {
+            let match = deleteBtn.href.match(/posts\/(\d+)\/delete/i);
+            if (match) postId = match[1];
+        } else if (warnBtn && warnBtn.href) {
+            let match = warnBtn.href.match(/posts\/(\d+)\/warn/i);
+            if (match) postId = match[1];
+        }
+        
+        if (!postId) return;
+        
+        const internalBar = message.querySelector('.actionBar-set--internal');
+        if (!internalBar) return;
+        
+        // Создаем кнопку стандартного вида
+        const offtopBtn = document.createElement('a');
+        offtopBtn.href = "javascript:void(0)";
+        offtopBtn.className = "actionBar-action actionBar-action--menuItem";
+        offtopBtn.innerHTML = "Удалить оффтоп";
+        offtopBtn.style.color = "#e74c3c"; // Слегка красим в красный для безопасности
+        
+        offtopBtn.addEventListener('click', async function(e) {
+            e.preventDefault();
+
+            if (CONFIG.confirmOfftopDelete !== false) {
+                if (!confirm("Удалить это сообщение с причиной «Оффтоп»?")) return;
+            }
+            
+            const ogText = offtopBtn.innerText;
+            offtopBtn.innerText = "Удаление...";
+            offtopBtn.style.pointerEvents = "none";
+            
+            try {
+                // Достаем токен безопасности XenForo
+                const tokenInput = document.querySelector('input[name="_xfToken"]');
+                const csrfToken = document.querySelector('html').getAttribute('data-csrf') || (tokenInput ? tokenInput.value : '');
+                
+                const formData = new URLSearchParams();
+                formData.append('_xfToken', csrfToken);
+                formData.append('reason', 'Оффтоп');
+                formData.append('hard_delete', '0');
+                formData.append('_xfResponseType', 'json');
+                
+                // Тихий фоновый запрос на удаление
+                const response = await fetch(`/posts/${postId}/delete`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json, text/javascript, */*; q=0.01',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                if (response.ok) {
+                    // Плавно скрываем сообщение с экрана
+                    message.style.transition = 'all 0.3s ease';
+                    message.style.opacity = '0';
+                    message.style.transform = 'scale(0.9)';
+                    setTimeout(() => message.remove(), 300);
+                } else {
+                    throw new Error();
+                }
+            } catch(err) {
+                offtopBtn.innerText = "Ошибка!";
+                setTimeout(() => {
+                    offtopBtn.innerText = ogText;
+                    offtopBtn.style.pointerEvents = "auto";
+                }, 2000);
+            }
+        });
+
+        if (warnBtn) {
+            warnBtn.parentNode.insertBefore(offtopBtn, warnBtn.nextSibling);
+        } else if (deleteBtn) {
+            deleteBtn.parentNode.insertBefore(offtopBtn, deleteBtn.nextSibling);
+        } else {
+            internalBar.appendChild(offtopBtn);
+        }
+    });
 }

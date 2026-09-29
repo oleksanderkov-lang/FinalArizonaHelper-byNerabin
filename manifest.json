@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Arizona Helper",
-  "version": "5.1",
+  "version": "5.2",
   "description": "Помощник для форума Arizona RP",
   "icons": {
     "16": "icon.png",
@@ -11,6 +11,9 @@
   "permissions": [
     "storage",
     "tabs"
+  ],
+  "host_permissions": [
+    "*://raw.githubusercontent.com/*"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -48,7 +51,7 @@
         "main.js"
       ],
       "world": "MAIN",
-      "run_at": "document_end"
+      "run_at": "document_start"
     }
   ]
 }

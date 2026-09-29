@@ -96,6 +96,15 @@ function showRefusePrompt(callback) {
                 .v-label { font-size: 11px; color: #aaa; font-weight: bold; margin-bottom: 6px; text-transform: uppercase; display: block; }
                 .v-input { width: 100%; box-sizing: border-box; padding: 12px; background: #1a1a20; border: 1px solid #333; color: #fff; border-radius: 8px; outline: none; transition: 0.3s; font-family: inherit; font-size: 13px; }
                 .v-input:focus { border-color: var(--ah-accent); box-shadow: 0 0 10px var(--ah-glow); }
+                .ah-btn-small { background: rgba(255,255,255,0.05); color: #aaa; border: 1px solid #333; border-radius: 6px; padding: 6px 10px; font-size: 10px; cursor: pointer; transition: 0.2s; font-weight: bold; text-transform: uppercase; }
+                .ah-btn-small:hover { background: rgba(46, 204, 113, 0.1); color: #2ecc71; border-color: #2ecc71; }
+                .ah-dropdown-item { display: flex; justify-content: space-between; align-items: center; }
+                .ah-del-reason { color: #e74c3c; cursor: pointer; padding: 2px 6px; font-weight: bold; border-radius: 4px; transition: 0.2s; }
+                .ah-del-reason:hover { background: rgba(231,76,60,0.2); }
+                .ah-tag-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+                .ah-tag-btn { padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #aaa; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; text-align: center; transition: 0.3s; text-transform: uppercase; user-select: none; }
+                .ah-tag-btn:hover { background: rgba(255,255,255,0.1); border-color: var(--ah-accent); color: #fff; }
+                .ah-tag-btn.active { background: rgba(52, 152, 219, 0.15); border-color: var(--ah-accent); color: var(--ah-accent); box-shadow: 0 0 10px rgba(52, 152, 219, 0.3); }
             </style>
             <h3 style="margin: 0 0 24px 0; color: var(--ah-accent); text-align: center; text-transform: uppercase; font-weight: 800;">Отказ жалобы</h3>
             
@@ -106,13 +115,21 @@ function showRefusePrompt(callback) {
             </div>
             
             <div class="v-group">
-                <label class="v-label">Текст в форму</label>
-                <textarea id="r-reason" class="v-input" rows="2" placeholder="Здесь появится причина..." style="resize: vertical;"></textarea>
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 6px;">
+                    <label class="v-label" style="margin-bottom: 0;">Текст в форму</label>
+                    <button id="r-add-custom" class="ah-btn-small" title="Сохранить текст ниже как быстрый шаблон">+ Сохранить шаблон</button>
+                </div>
+                <textarea id="r-reason" class="v-input" rows="3" placeholder="Здесь появится причина..." style="resize: vertical;"></textarea>
             </div>
             
-            <div class="v-group">
-                <label class="v-label">Пункт правил (Необязательно)</label>
-                <input type="text" id="r-rule" class="v-input" placeholder="Раздел, Пункт...">
+            <div class="v-group" style="margin-top: 15px; margin-bottom: 0;">
+                <label class="v-label">Тег и Статус темы</label>
+                <div class="ah-tag-grid">
+                    <div class="ah-tag-btn" data-prefix="0">Не менять</div>
+                    <div class="ah-tag-btn" data-prefix="15">⏳ На рассм.</div>
+                    <div class="ah-tag-btn" data-prefix="17">✅ Рассмотрено</div>
+                    <div class="ah-tag-btn active" data-prefix="18">❌ Отказано</div>
+                </div>
             </div>
             
             <div style="display: flex; gap: 12px; margin-top: 28px;">
@@ -126,34 +143,121 @@ function showRefusePrompt(callback) {
     const searchInput = overlay.querySelector('#r-search');
     const dropdown = overlay.querySelector('#r-dropdown');
     const reasonInput = overlay.querySelector('#r-reason');
-    const rules = window.ARIZONA_REFUSE_RULES || [];
+    const addBtn = overlay.querySelector('#r-add-custom');
 
-    searchInput.addEventListener('input', function(e) {
-        const words = e.target.value.toLowerCase().split(' ').filter(function(w) { return w; });
+    // Логика тегов (по умолчанию активен "Отказано" - 18)
+    let selectedPrefix = '18'; 
+    overlay.querySelectorAll('.ah-tag-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            overlay.querySelectorAll('.ah-tag-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            selectedPrefix = this.dataset.prefix;
+        });
+    });
+
+    if (!CONFIG.customRefuseReasons) CONFIG.customRefuseReasons = [];
+
+    function renderDropdown() {
+        const words = searchInput.value.toLowerCase().split(' ').filter(w => w);
         dropdown.innerHTML = '';
-        if (!words.length) { dropdown.style.display = 'none'; return; }
+        
+        if (!words.length) {
+            if (CONFIG.customRefuseReasons.length > 0) {
+                const frag = document.createDocumentFragment();
+                CONFIG.customRefuseReasons.forEach((ruleText, idx) => {
+                    const div = document.createElement('div');
+                    div.className = 'ah-dropdown-item';
+                    div.innerHTML = `<span style="flex:1; cursor:pointer;">${escapeHtml(ruleText)}</span> <span class="ah-del-reason" data-idx="${idx}" title="Удалить шаблон">✖</span>`;
+                    
+                    div.querySelector('span').addEventListener('click', () => {
+                        reasonInput.value = ruleText;
+                        searchInput.value = '';
+                        dropdown.style.display = 'none';
+                    });
+                    
+                    div.querySelector('.ah-del-reason').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        CONFIG.customRefuseReasons.splice(idx, 1);
+                        window.dispatchEvent(new CustomEvent('AH_SAVE_CONFIG', { detail: { customRefuseReasons: CONFIG.customRefuseReasons } }));
+                        renderDropdown();
+                    });
+                    frag.appendChild(div);
+                });
+                dropdown.appendChild(frag);
+                dropdown.style.display = 'block';
+            } else {
+                dropdown.style.display = 'none';
+            }
+            return;
+        }
 
-        const matches = rules.filter(function(ruleText) {
-            const lowerRule = ruleText.toLowerCase();
-            return words.every(function(w) { return lowerRule.includes(w); });
-        }).slice(0, 10);
+        const baseRules = window.ARIZONA_REFUSE_RULES || [];
+        const customMatches = CONFIG.customRefuseReasons.filter(r => words.every(w => r.toLowerCase().includes(w)));
+        const baseMatches = baseRules.filter(r => words.every(w => r.toLowerCase().includes(w))).slice(0, 10);
 
-        if (matches.length > 0) {
+        if (customMatches.length > 0 || baseMatches.length > 0) {
             const frag = document.createDocumentFragment();
-            matches.forEach(function(ruleText) {
+            
+            customMatches.forEach(ruleText => {
+                const idx = CONFIG.customRefuseReasons.indexOf(ruleText);
                 const div = document.createElement('div');
                 div.className = 'ah-dropdown-item';
-                div.textContent = ruleText;
-                div.addEventListener('click', function() { 
-                    reasonInput.value = ruleText; 
-                    searchInput.value = ''; 
-                    dropdown.style.display = 'none'; 
+                div.innerHTML = `<span style="flex:1; cursor:pointer;"><b style="color:var(--ah-accent);">[Свой]</b> ${escapeHtml(ruleText)}</span> <span class="ah-del-reason" data-idx="${idx}" title="Удалить">✖</span>`;
+                
+                div.querySelector('span').addEventListener('click', () => {
+                    reasonInput.value = ruleText;
+                    searchInput.value = '';
+                    dropdown.style.display = 'none';
+                });
+                
+                div.querySelector('.ah-del-reason').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    CONFIG.customRefuseReasons.splice(idx, 1);
+                    window.dispatchEvent(new CustomEvent('AH_SAVE_CONFIG', { detail: { customRefuseReasons: CONFIG.customRefuseReasons } }));
+                    renderDropdown();
                 });
                 frag.appendChild(div);
             });
+
+            baseMatches.forEach(ruleText => {
+                const div = document.createElement('div');
+                div.className = 'ah-dropdown-item';
+                div.textContent = ruleText;
+                div.style.cursor = 'pointer';
+                div.addEventListener('click', () => {
+                    reasonInput.value = ruleText;
+                    searchInput.value = '';
+                    dropdown.style.display = 'none';
+                });
+                frag.appendChild(div);
+            });
+
             dropdown.appendChild(frag);
             dropdown.style.display = 'block';
-        } else { dropdown.style.display = 'none'; }
+        } else {
+            dropdown.style.display = 'none';
+        }
+    }
+
+    searchInput.addEventListener('input', renderDropdown);
+    searchInput.addEventListener('focus', () => { if (searchInput.value === '') renderDropdown(); });
+
+    addBtn.addEventListener('click', () => {
+        const text = reasonInput.value.trim();
+        if (text && !CONFIG.customRefuseReasons.includes(text)) {
+            CONFIG.customRefuseReasons.push(text);
+            window.dispatchEvent(new CustomEvent('AH_SAVE_CONFIG', { detail: { customRefuseReasons: CONFIG.customRefuseReasons } }));
+            
+            const oldText = addBtn.textContent;
+            addBtn.textContent = '✔ Сохранено';
+            addBtn.style.color = '#2ecc71';
+            addBtn.style.borderColor = '#2ecc71';
+            setTimeout(() => {
+                addBtn.textContent = oldText;
+                addBtn.style.color = '';
+                addBtn.style.borderColor = '';
+            }, 2000);
+        }
     });
 
     overlay.addEventListener('mousedown', function(e) { 
@@ -161,8 +265,18 @@ function showRefusePrompt(callback) {
         if (e.target === overlay) closeModal(overlay);
     });
     
-    overlay.querySelector('#r-submit').addEventListener('click', function() { callback(reasonInput.value.trim() || "Отказано.", overlay.querySelector('#r-rule').value.trim()); closeModal(overlay); });
-    overlay.querySelector('#r-cancel').addEventListener('click', function() { closeModal(overlay); });
+    overlay.querySelector('#r-submit').addEventListener('click', function() { 
+        // Фикс: конвертируем переносы строк и пробелы для редактора форума
+        let finalReason = reasonInput.value.trim();
+        finalReason = finalReason.replace(/\n/g, '<br>').replace(/  /g, ' &nbsp;');
+        
+        callback(finalReason || "Отказано.", "", selectedPrefix); 
+        closeModal(overlay); 
+    });
+    
+    overlay.querySelector('#r-cancel').addEventListener('click', function() { 
+        closeModal(overlay); 
+    });
 }
 
 // --- ОКНО ЗАПРОСА ОПРЫ ---
@@ -173,20 +287,82 @@ function showOpraPrompt(extractedName, callback) {
     const author = extractAuthorNickname();
     
     overlay.innerHTML = `
-        <div class="ah-modal-box" style="width: 360px; text-align: center;">
-            <h3 style="margin: 0 0 20px 0; color: var(--ah-accent); text-transform: uppercase;">Запрос опры</h3>
+        <div class="ah-modal-box" style="width: 380px; text-align: center;">
+            <style>
+                .o-type-btn {
+                    padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+                    color: #aaa; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: bold;
+                    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); text-transform: uppercase; letter-spacing: 0.5px;
+                }
+                .o-type-btn:hover { background: rgba(255,255,255,0.1); border-color: var(--ah-accent); color: #fff; }
+                
+                /* Красивый активный статус (неон + поднятие) */
+                .o-type-btn.active {
+                    background: var(--ah-btn-h); border-color: var(--ah-accent); color: var(--ah-accent);
+                    box-shadow: 0 6px 15px var(--ah-glow); transform: translateY(-3px);
+                }
+                
+                /* Анимация ошибки (тряска) */
+                .o-type-btn.error {
+                    border-color: #e74c3c; color: #e74c3c; background: rgba(231,76,60,0.1);
+                    animation: o-shake 0.4s ease-in-out;
+                }
+                @keyframes o-shake {
+                    0%, 100% { transform: translateX(0); }
+                    25% { transform: translateX(-4px); }
+                    50% { transform: translateX(4px); }
+                    75% { transform: translateX(-4px); }
+                }
+            </style>
+            
+            <h3 style="margin: 0 0 15px 0; color: var(--ah-accent); text-transform: uppercase;">Запрос опры</h3>
+            
+            <div style="font-size: 11px; color: #aaa; margin-bottom: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">1. Выберите тип:</div>
+            <div style="display: flex; gap: 10px; margin-bottom: 24px;">
+                <button class="o-type-btn" data-type="moment" style="flex:1;">Момента</button>
+                <button class="o-type-btn" data-type="full" style="flex:1;">Полная</button>
+            </div>
+            
+            <div style="font-size: 11px; color: #aaa; margin-bottom: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">2. У кого запросить?</div>
             <div style="display: flex; flex-direction: column; gap: 10px;">
                 <button class="o-btn ah-btn-cancel" data-val="игрока ${escapeHtml(extractedName)}">У игрока</button>
                 <button class="o-btn ah-btn-cancel" data-val="автора ${escapeHtml(author)}">У автора</button>
                 <button class="o-btn ah-btn-submit" data-val="игрока ${escapeHtml(extractedName)} и автора ${escapeHtml(author)}">У обоих</button>
             </div>
+            
             <button id="o-cancel" class="ah-btn-error" style="margin-top:20px; width:100%;">Отмена</button>
         </div>
     `;
     document.body.appendChild(overlay);
 
+    let currentType = null;
+
+    // Логика красивого выделения
+    overlay.querySelectorAll('.o-type-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            // Очищаем классы active и error со всех кнопок
+            overlay.querySelectorAll('.o-type-btn').forEach(b => b.classList.remove('active', 'error'));
+            // Вешаем active на нажатую
+            e.target.classList.add('active');
+            currentType = e.target.dataset.type;
+        });
+    });
+
+    // Логика блокировки с тряской
     overlay.querySelectorAll('.o-btn').forEach(function(b) {
-        b.addEventListener('click', function(e) { callback(e.target.dataset.val); closeModal(overlay); });
+        b.addEventListener('click', function(e) { 
+            if (!currentType) {
+                overlay.querySelectorAll('.o-type-btn').forEach(btn => {
+                    btn.classList.add('error');
+                    // Снимаем класс ошибки после окончания анимации
+                    setTimeout(() => btn.classList.remove('error'), 400);
+                });
+                return;
+            }
+            
+            callback(e.target.dataset.val, currentType); 
+            closeModal(overlay); 
+        });
     });
 
     overlay.querySelector('#o-cancel').addEventListener('click', function() { closeModal(overlay); });
@@ -219,6 +395,10 @@ function showVerdictPrompt(callback) {
                 .v-label { display: block !important; font-size: 11px !important; color: #aaa !important; font-weight: bold !important; margin: 0 0 6px 0 !important; text-transform: uppercase !important; }
                 .v-input { display: block !important; width: 100% !important; box-sizing: border-box !important; padding: 10px 12px !important; background: #1a1a20 !important; border: 1px solid #333 !important; color: #fff !important; border-radius: 8px !important; outline: none !important; transition: border-color 0.3s, box-shadow 0.3s !important; font-size: 13px !important; font-family: inherit !important; margin: 0 !important; height: auto !important; }
                 .v-input:focus { border-color: var(--ah-accent) !important; box-shadow: 0 0 10px var(--ah-glow) !important; }
+                .ah-tag-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+                .ah-tag-btn { padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #aaa; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; text-align: center; transition: 0.3s; text-transform: uppercase; user-select: none; }
+                .ah-tag-btn:hover { background: rgba(255,255,255,0.1); border-color: var(--ah-accent); color: #fff; }
+                .ah-tag-btn.active { background: rgba(52, 152, 219, 0.15); border-color: var(--ah-accent); color: var(--ah-accent); box-shadow: 0 0 10px rgba(52, 152, 219, 0.3); }
             </style>
             <h3 style="margin: 0 0 20px 0; color: var(--ah-accent); text-align: center; text-transform: uppercase; font-weight: 800;">Выдача наказания</h3>
             
@@ -227,7 +407,7 @@ function showVerdictPrompt(callback) {
                     <input type="checkbox" id="ah-short-reply" style="opacity: 0; width: 0; height: 0; position: absolute;">
                     <span class="ah-f4-slider" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.1); border-radius: 20px; transition: 0.3s;"></span>
                 </div>
-                <span style="font-size: 12px; color: #fff; font-weight: 600;">Скрытый ответ (на форум только "Закрыто")</span>
+                <span style="font-size: 12px; color: #fff; font-weight: 600;">Не полное заполнение ответа</span>
             </label>
 
             <div class="v-group">
@@ -287,6 +467,16 @@ function showVerdictPrompt(callback) {
                <button id="v-add-btn" class="ah-btn-success" style="width: 100%; margin-top: 10px;">Добавить в список</button>
             </div>
 
+            <div class="v-group" style="margin-top: 15px; margin-bottom: 0;">
+                <label class="v-label">Тег и Статус темы</label>
+                <div class="ah-tag-grid">
+                    <div class="ah-tag-btn" data-prefix="0">Не менять</div>
+                    <div class="ah-tag-btn" data-prefix="15">⏳ На рассм.</div>
+                    <div class="ah-tag-btn active" data-prefix="17">✅ Рассмотрено</div>
+                    <div class="ah-tag-btn" data-prefix="18">❌ Отказано</div>
+                </div>
+            </div>
+
             <div style="display: flex; gap: 12px; margin-top: 20px;">
                 <button id="v-cancel" class="ah-btn-cancel" style="flex: 1;">Отмена</button>
                 <button id="v-submit" class="ah-btn-submit" style="flex: 1;">Выдать всё</button>
@@ -301,6 +491,15 @@ function showVerdictPrompt(callback) {
             e.target.nextElementSibling.style.background = e.target.checked ? 'rgba(52, 152, 219, 0.5)' : 'rgba(255,255,255,0.1)';
         });
     }
+
+    let selectedPrefix = '0';
+    overlay.querySelectorAll('.ah-tag-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            overlay.querySelectorAll('.ah-tag-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            selectedPrefix = this.dataset.prefix;
+        });
+    });
 
     overlay.querySelector('#btn-author').addEventListener('click', function() { 
         overlay.querySelector('#v-player').value = extractedAuthor; 
@@ -565,14 +764,22 @@ function showVerdictPrompt(callback) {
                 whoStr = p.type === 'banfa' ? "Пользователь" : "Игрок";
             }
             
-            punishmentsHtml += `<p>${whoStr} получит ${fullPun} за ${escapeHtml(p.type === 'banfa' ? getShortFaReason(p.ruleText || p.reason) : p.reason)}.</p>`;
+            let shortReason = p.reason || "нарушение правил";
+            if (p.type === 'banfa') {
+                shortReason = shortReason.toLowerCase().includes("неадекват") ? "неадекват" : (shortReason.toLowerCase().includes("оффтоп") ? "оффтоп" : shortReason);
+            }
+            
+            punishmentsHtml += `<p>${whoStr} получит ${fullPun} за ${escapeHtml(shortReason)}.</p>`;
             
             if (p.type === 'banfa') {
                 let faPostLink = extractedPostUrl || window.location.href.split('#')[0].split('page-')[0];
-                let faReasonStr = `жб${threadId}(${getShortFaReason(p.ruleText || p.reason)})`;
                 
-                commandsStr += `Форма: Ссылка на форумный аккаунт: ${fetchedFaProfile}\nПричина(с Вашим префиксом, с указанием сообщения): ${faPostLink} ${faReasonStr} ${adminTag}\nПинг: @Куратор сервера\n\n`;
+                // Для бана ФА оставляем: жбID(причина)
+                let faReasonStr = `жб${threadId}(${shortReason})`;
+                
+                commandsStr += `Ссылка на форумный аккаунт: ${fetchedFaProfile}\nПричина(с Вашим префиксом, с указанием сообщения): ${faPostLink} ${faReasonStr} ${adminTag}\nПинг: @Куратор сервера\n\n`;
             } else {
+                // ВОЗВРАЩЕНО: Для игры пишем просто "жб123456" без текстовой причины
                 commandsStr += `/${p.type} ${p.player}${p.time ? " " + p.time : ""} жб${threadId} ${adminTag}\n`;
             }
             
@@ -591,14 +798,16 @@ function showVerdictPrompt(callback) {
         const TWO_WEEKS = 14 * 24 * 60 * 60 * 1000;
         CONFIG.punishmentHistory = CONFIG.punishmentHistory.filter(h => h.date > Date.now() - TWO_WEEKS);
         
-        window.dispatchEvent(new CustomEvent('AH_SAVE_CONFIG', {
-            detail: { punishmentHistory: CONFIG.punishmentHistory }
-        }));
-
-        callback(punishments, punishmentsHtml, finalRuleText, logLine);
+        let eventDetail = { punishmentHistory: CONFIG.punishmentHistory };
         if (commandsStr.trim().length > 0) {
-            sendToDiscordLog(commandsStr.trim());
+            eventDetail.newPendingForm = commandsStr.trim();
         }
+        eventDetail.incrementChecked = true;
+
+        window.dispatchEvent(new CustomEvent('AH_SAVE_CONFIG', { detail: eventDetail }));
+
+        // Передаем selectedPrefix в движок
+        callback(punishments, punishmentsHtml, finalRuleText, logLine, selectedPrefix);
         closeModal(overlay);
     });
 
@@ -648,3 +857,14 @@ function showCustomDatePrompt(callback) {
     overlay.querySelector('#cd-cancel').addEventListener('click', function() { closeModal(overlay); });
     overlay.addEventListener('mousedown', function(e) { if (e.target === overlay) closeModal(overlay); });
 }
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        // Ищем наше активное окно, которое еще не в процессе закрытия
+        const activeOverlay = document.querySelector('.ah-modal-overlay:not(.ah-closing)');
+        if (activeOverlay) {
+            e.preventDefault(); // Глушим стандартное поведение браузера на всякий случай
+            closeModal(activeOverlay);
+        }
+    }
+});

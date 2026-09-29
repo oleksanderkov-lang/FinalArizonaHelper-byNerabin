@@ -1,4 +1,5 @@
 let CONFIG = {
+    
     gender: "Male",
     nickname: "Nick Name",
     organization: "LSPD",
@@ -27,7 +28,11 @@ let CONFIG = {
     hotkeyF4: "verdict",
     hotkeyF5: "refuse",
     customTemplates: [],
-    punishmentHistory: []
+    punishmentHistory: [],
+    pendingForms: [],
+    totalChecked: 0,
+    customRefuseReasons: [],
+    confirmOfftopDelete: true
 };
 
 let isStarted = false;
@@ -60,6 +65,7 @@ function startHelper() {
     }
     
     enhanceXenForoMenus(document.body);
+    addOfftopButtons(document.body);
     initSmartNav();
     moveFilters();
     
@@ -75,7 +81,8 @@ function startHelper() {
         if (shouldUpdate) {
             clearTimeout(obsTo);
             obsTo = setTimeout(function() { 
-                enhanceXenForoMenus(document.body); 
+                enhanceXenForoMenus(document.body);
+                addOfftopButtons(document.body);
                 createButtons(); 
                 initSmartNav();
                 moveFilters();
@@ -101,7 +108,10 @@ function startHelper() {
             const container = e.target.closest('.quick_reply_container');
             const cat = escapeHtml(container.querySelector('#cm_cat').value.trim() || 'Общие');
             const title = escapeHtml(container.querySelector('#cm_title').value.trim().substring(0, 100));
-            const text = escapeHtml(container.querySelector('#cm_text').value.trim());
+            
+            // Сохраняем переносы строк Enter и пробелы
+            let rawText = container.querySelector('#cm_text').value.trim();
+            const text = escapeHtml(rawText).replace(/\n/g, '<br>').replace(/  /g, ' &nbsp;');
             
             if (title && text) {
                 if (!CONFIG.customTemplates) CONFIG.customTemplates = [];
@@ -177,6 +187,22 @@ function startHelper() {
     });
 }
 
+// Слушатель фоновой синхронизации (восстановлен для правильной работы памяти)
+window.addEventListener('AH_UPDATE_FROM_STORAGE', function(e) {
+    if (!e || !e.detail) return;
+    Object.assign(CONFIG, e.detail);
+    
+    // Без этого новые ники и организации не применятся к формам до перезагрузки страницы
+    if (typeof autoDetectConfig === 'function') {
+        autoDetectConfig();
+    }
+    
+    // Тихо обновляем менюшки и бинды, не ломая мышку и визуал
+    if (typeof window.reloadMenu === 'function') {
+        window.reloadMenu(); 
+    }
+});
+
 // Первичная инициализация скрипта (ждет мост из popup)
 let waitInterval = setInterval(function() {
     const configTag = document.getElementById('arizona-ext-config');
@@ -194,3 +220,4 @@ setTimeout(function() {
         startHelper(); 
     } 
 }, 2000);
+
